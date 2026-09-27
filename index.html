@@ -263,6 +263,7 @@ details.notes a { color: var(--cold); }
   .c-ticks button { padding: 4px 6px; font-size: 13px; }
   .c-stats { display: flex; overflow-x: auto; scrollbar-width: none; padding-top: 8px; }
   .c-stats::-webkit-scrollbar { display: none; }
+  .c-stats { -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent); }
   .c-stats div { flex: none; min-width: 112px; padding: 0 10px; border-left: 1px solid var(--hair) !important; }
   .c-stats div:first-child { border-left: 0 !important; padding-left: 0; }
   .c-stats dd { font-size: 14.5px; }
@@ -1808,6 +1809,7 @@ function initSurge() {
   const sun = new THREE.DirectionalLight(lin(0xfff1dc), 2.4);
   sun.position.set(-30, 45, 38); sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.35;   // no self-shadowing stripes on the sloping ground
   Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 40, bottom: -40, near: 1, far: 160 });
   sc.add(sun);
 
@@ -1913,7 +1915,7 @@ function initSurge() {
 const WATER = lin(0x14607c), FOAM = lin(0xe8f1f4);
 function tickSurge(dt) {
   const show = state.focus === 'surge';
-  if (SG.panel.hidden === show) { SG.panel.hidden = !show; if (show) { if (!SG.ready) initSurge(); sizeSurge(); } }
+  if (SG.panel.hidden === show) { SG.panel.hidden = !show; if (show) { if (!SG.ready) initSurge(); sizeSurge(); } resize(); }
   if (!show || !SG.ready) return;
   SG.t += dt;
   const target = surgeFor(M.kt);
@@ -2247,7 +2249,9 @@ function resize() {
     camera.setViewOffset(W, H, -lw / 2, ch / 2 - 30, W, H);
   } else {
     // centre the storm between the toolbar and the bottom sheet
-    const top = document.querySelector('.toolrow').getBoundingClientRect().bottom - r.top;
+    // …or between the surge card and the bottom sheet when the card is open
+    const card = SG.panel.hidden ? null : SG.panel.getBoundingClientRect();
+    const top = (card ? card.bottom : document.querySelector('.toolrow').getBoundingClientRect().bottom) - r.top;
     const bottom = r.bottom - lessonEl.getBoundingClientRect().top;
     camera.setViewOffset(W, H, 0, (bottom - top) / 2, W, H);
   }
