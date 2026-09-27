@@ -1248,7 +1248,7 @@ scene.add(ocean);
    Airflow streamlines, heat-engine loop, markers
    ===================================================================== */
 const flowMat = new THREE.ShaderMaterial({
-  uniforms: Object.assign({ uKind: { value: 0 } }, U),
+  uniforms: Object.assign({ uKind: { value: 0 } }, U), transparent: true, blending: THREE.AdditiveBlending,
   vertexShader: /* glsl */`
     uniform float uTilt, uExplode, uTop, uKind;
     varying float vS; varying vec3 vN; varying vec3 vW; varying float vY;
@@ -1288,7 +1288,7 @@ const flowMat = new THREE.ShaderMaterial({
     }
   `,
 });
-const eyeFlowMat = new THREE.ShaderMaterial({ uniforms: Object.assign({}, flowMat.uniforms, { uKind: { value: 1 } }), vertexShader: flowMat.vertexShader, fragmentShader: flowMat.fragmentShader });
+const eyeFlowMat = new THREE.ShaderMaterial({ uniforms: Object.assign({}, flowMat.uniforms, { uKind: { value: 1 } }), vertexShader: flowMat.vertexShader, fragmentShader: flowMat.fragmentShader, transparent: true, blending: THREE.AdditiveBlending });
 const flowGroup = new THREE.Group();
 scene.add(flowGroup);
 let flowBuilt = null;
@@ -1476,6 +1476,8 @@ function applyUniforms(dt) {
   for (let i = 0; i < 4; i++) { U.uDimC.value[i] = cur['d' + i]; U.uHiC.value[i] = cur['h' + i]; }
   U.uSeg.value.set(cur.s0, cur.s1, cur.s2, cur.s3);
   flowGroup.visible = cur.flow > 0.02;
+  // fully shown tubes write depth so clouds sit correctly around them; fading tubes simply glow less
+  flowMat.depthWrite = eyeFlowMat.depthWrite = cur.flow > 0.6;
   loopGroup.visible = cur.engine > 0.03;
   loopGroup.rotation.y = Math.PI + (cur.cutC - Math.max(cur.cutW, 0.35) + 0.06);
   spinMat.opacity = cur.spinVis; spinGroup.visible = cur.spinVis > 0.01; spinGroup.position.y = U.uOceanY.value;
@@ -2151,7 +2153,7 @@ new ResizeObserver(resize).observe($('console'));
 const clock = new THREE.Clock();
 const CAPTURE = location.hash === '#capture';
 let t = 0, ftAvg = 16, ftCount = 0;
-function tick(dt) {
+function tick(dt, draw = true) {
   t += dt * (reduceMotion ? 0.25 : 1);
   U.uTime.value = t;
   stepGrow(dt);
@@ -2162,6 +2164,7 @@ function tick(dt) {
   spinGroup.rotation.y = t * 0.25;
   probeMat.opacity += ((probeOn ? 0.85 : 0) - probeMat.opacity) * 0.2;
   probe3d.visible = probeMat.opacity > 0.01;
+  if (!draw) return;
 
   camera.updateMatrixWorld();
   cloudMat.uniforms.uInvProj.value.copy(camera.projectionMatrixInverse);
@@ -2213,6 +2216,7 @@ if (CAPTURE) {
   // frame-by-frame capture for recording videos: time only moves when the recorder steps it
   window.__app = {
     step(dt, sub = 1) { for (let i = 0; i < sub; i++) { tick(dt / sub); this.sync(); } },
+    advance(dt) { tick(dt, false); },
     sync() { const gl = renderer.getContext(), px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); },
     select, setKt, startGrow, stopGrow, setView, flyTo, surgeFor,
     setImg(v) { document.querySelector(`#imgSeg [data-img="${v}"]`).click(); },

@@ -16,6 +16,7 @@ const OUT = args.out || 'frames';
 const FPS = +(args.fps || 30);
 const W = +(args.width || 1920), H = +(args.height || 1080);
 const DURATION = +(args.duration || 26.5);
+const START = +(args.start || 0);   // re-render from here: earlier frames only run the simulation
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const page_url = pathToFileURL(path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'index.html')).href + '#capture';
@@ -52,10 +53,10 @@ await page.evaluate(() => {
   const c = __app.camera;
   c.position.set(96, 50, 180); __app.controls.target.set(0, 6, 0);
   __app.flight = { from: { pos: c.position.clone(), target: __app.controls.target.clone() }, toPos: __app.HOME.pos.clone(), toTarget: __app.HOME.target.clone(), t: 0, dur: 6.5 };
-  __app.step(0, 6);   // warm up shaders and the temporal accumulation without moving time
 });
 
 const frames = Math.round(DURATION * FPS);
+const first = Math.round(START * FPS);
 const fired = new Set();
 const started = Date.now();
 for (let i = 0; i < frames; i++) {
@@ -65,10 +66,12 @@ for (let i = 0; i < frames; i++) {
     const u = Math.min(1, (T - a) / (b - a));
     await page.evaluate(`(() => { const u = ${u}; ${code}; })()`);
   }
+  if (i < first) { await page.evaluate((dt) => __app.advance(dt), 1 / FPS); continue; }
+  if (i === first) await page.evaluate(() => __app.step(0, 6));   // settle shaders and temporal accumulation without moving time
   await page.evaluate((dt) => __app.step(dt), 1 / FPS);
   await page.screenshot({ path: path.join(OUT, `${String(i).padStart(4, '0')}.jpg`), type: 'jpeg', quality: 94, timeout: 600000 });
   if (i % 10 === 0) {
-    const per = (Date.now() - started) / (i + 1) / 1000;
+    const per = (Date.now() - started) / (i - first + 1) / 1000;
     console.log(`frame ${i + 1}/${frames}  ${per.toFixed(1)} s/frame  ~${((frames - i - 1) * per / 60).toFixed(0)} min left`);
   }
 }
