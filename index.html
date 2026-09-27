@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hurricane Heat Engine</title>
+<meta name="description" content="Open up a hurricane in 3D. Cut it in half, pull it apart, see every part from the warm ocean to the frozen outflow, and change the sea temperature to watch its power change.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #060b12;
+  --panel: #0a121c;
+  --raise: #0f1a27;
+  --line: #1b2a3b;
+  --line-strong: #2a3d52;
+  --ink: #e6edf3;
+  --muted: #8b9cb0;
+  --faint: #5d6f84;
+  --heat: #ff8a3d;
+  --moist: #46c7b8;
+  --cold: #b9c6ff;
+  --eye: #f2d49b;
+  --surge: #3fd0ff;
+  --spin: #d7a6ff;
+  --wind: #ffc140;
+  --band: #9ec3d9;
+  --sea: #3d86c6;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 14px/1.55 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--heat); outline-offset: 2px; }
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "stage panel" "deck panel";
+}
+
+/* ---------- Stage ---------- */
+.stage { grid-area: stage; position: relative; overflow: hidden; min-height: 360px; background: radial-gradient(120% 90% at 50% 60%, #0b1826 0%, var(--bg) 70%); }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#gl:active { cursor: grabbing; }
+
+.masthead { position: absolute; left: 20px; top: 16px; pointer-events: none; max-width: min(460px, calc(100% - 40px)); }
+.masthead h1 {
+  margin: 0; font: 800 clamp(34px, 4.2vw, 56px)/0.9 var(--display);
+  letter-spacing: 0.01em; text-transform: uppercase; text-wrap: balance;
+}
+.masthead h1 span { color: var(--heat); }
+.masthead p { margin: 8px 0 0; color: var(--muted); font-size: 13.5px; max-width: 40ch; }
+
+.viewbar {
+  position: absolute; right: 16px; top: 16px;
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: calc(100% - 32px);
+}
+.seg { display: flex; background: rgba(10, 18, 28, 0.82); border: 1px solid var(--line-strong); border-radius: 8px; padding: 3px; backdrop-filter: blur(6px); }
+.seg button {
+  border: 0; background: transparent; padding: 6px 11px; border-radius: 5px; cursor: pointer;
+  font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+.hint {
+  position: absolute; left: 20px; bottom: 14px; margin: 0; pointer-events: none;
+  font: 400 11px/1.4 var(--mono); color: var(--faint); letter-spacing: 0.04em;
+}
+.irkey { position: absolute; right: 16px; bottom: 14px; width: min(300px, calc(100% - 32px)); pointer-events: none; }
+.irkey .bar { height: 8px; border-radius: 2px; background: linear-gradient(90deg, #121418 0%, #6b7078 34.8%, #c8ccd0 52.2%, #3fa7ff 60.9%, #2fd17a 69.6%, #f5e04a 76.5%, #ff8a2a 82.6%, #e0243a 88.7%, #6d0f3c 93.9%, #ffffff 100%); }
+.irkey .ticks { position: relative; height: 16px; font: 400 10px/16px var(--mono); color: var(--muted); }
+.irkey .ticks span { position: absolute; transform: translateX(-50%); }
+.irkey .cap { font: 500 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.tag {
+  position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer;
+  display: flex; align-items: center; gap: 7px; padding: 4px 9px 4px 6px;
+  background: rgba(6, 11, 18, 0.72); border: 1px solid var(--line-strong); border-radius: 999px;
+  font: 500 11px/1 var(--mono); letter-spacing: 0.04em; color: var(--ink); white-space: nowrap;
+  transition: opacity 0.25s, border-color 0.2s, background 0.2s;
+  backdrop-filter: blur(4px);
+}
+.tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent); }
+.tag:hover { border-color: var(--c); }
+.tag.on { background: color-mix(in srgb, var(--c) 18%, rgba(6, 11, 18, 0.85)); border-color: var(--c); }
+.tag.leg { background: rgba(6, 11, 18, 0.85); cursor: default; }
+.tag.leg b { color: var(--c); font-weight: 500; }
+.tag.note { cursor: default; color: var(--muted); border-style: dashed; }
+
+/* ---------- Deck (power controls) ---------- */
+.deck {
+  grid-area: deck; border-top: 1px solid var(--line); background: var(--panel);
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.45fr); gap: 0;
+}
+.controls { padding: 16px 20px 18px; border-right: 1px solid var(--line); display: grid; gap: 14px; align-content: start; }
+.deck h2, .panel h2 {
+  margin: 0; font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+}
+.ctl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; }
+.ctl label { font-weight: 500; font-size: 13px; }
+.ctl output { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.ctl small { grid-column: 1 / -1; color: var(--faint); font-size: 11.5px; line-height: 1.35; }
+input[type="range"] { grid-column: 1 / -1; width: 100%; margin: 4px 0 0; accent-color: var(--heat); height: 22px; background: transparent; -webkit-appearance: none; appearance: none; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--track-a), var(--track-b)); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--track-a), var(--track-b)); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--ink); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--line-strong); cursor: pointer; }
+input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 3px solid var(--bg); cursor: pointer; }
+#sst { --track-a: #2b5f8f; --track-b: var(--heat); }
+#tout { --track-a: var(--cold); --track-b: #45506a; }
+#shear { --track-a: #3a4a5c; --track-b: #c7d3df; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button {
+  border: 1px solid var(--line-strong); background: transparent; border-radius: 999px; padding: 5px 10px;
+  font: 400 11.5px/1 var(--body); color: var(--muted); cursor: pointer;
+}
+.presets button:hover { color: var(--ink); border-color: var(--muted); }
+
+.readout { padding: 16px 20px 18px; display: grid; gap: 14px; align-content: start; }
+.verdict { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.cat {
+  --cc: #ffc140; display: inline-grid; place-items: center; min-width: 64px; height: 64px; padding: 0 10px; border-radius: 10px;
+  background: var(--cc); color: #0b0f14; font: 800 34px/1 var(--display); letter-spacing: 0.02em;
+}
+.verdict .what { display: grid; gap: 2px; }
+.verdict .what strong { font: 800 22px/1 var(--display); letter-spacing: 0.03em; text-transform: uppercase; }
+.verdict .what span { color: var(--muted); font-size: 12.5px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; }
+.stat { display: grid; gap: 3px; align-content: start; min-width: 0; }
+.stat dt { font: 500 10px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+.stat dd { margin: 0; font: 500 19px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.stat dd small { font-size: 12px; color: var(--muted); }
+.stat p { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+.stat.hot dd { color: var(--heat); }
+
+/* ---------- Panel ---------- */
+.panel { grid-area: panel; border-left: 1px solid var(--line); background: var(--panel); overflow-y: auto; display: flex; flex-direction: column; }
+.panel section { padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.parts { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 2px; }
+.parts button {
+  width: 100%; display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 10px;
+  padding: 8px 10px; border: 1px solid transparent; border-radius: 7px; background: transparent; cursor: pointer; text-align: left;
+}
+.parts button:hover { background: var(--raise); }
+.parts button[aria-pressed="true"] { background: var(--raise); border-color: var(--line-strong); }
+.parts i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.parts span { font-weight: 500; font-size: 13.5px; }
+.parts em { font: 400 11px/1 var(--mono); font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; }
+.parts .group { font: 500 10px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); padding: 12px 10px 4px; }
+
+.detail h3 { margin: 6px 0 8px; font: 800 30px/1 var(--display); text-transform: uppercase; letter-spacing: 0.02em; color: var(--c, var(--ink)); text-wrap: balance; }
+.detail .lede { margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: var(--ink); }
+.detail p { margin: 0 0 10px; color: #c3cfdb; max-width: 62ch; }
+.specs { margin: 14px 0 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.specs div { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.specs dt { color: var(--muted); font-size: 12.5px; }
+.specs dd { margin: 0; font: 500 12.5px/1.4 var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.specs dd.live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--heat); margin-right: 7px; vertical-align: 1px; }
+
+details.notes summary { cursor: pointer; font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+details.notes summary:hover { color: var(--ink); }
+details.notes ul { margin: 12px 0 0; padding-left: 18px; color: var(--muted); font-size: 12.5px; display: grid; gap: 8px; }
+details.notes a { color: var(--cold); }
+.foot { margin-top: auto; padding: 14px 20px 18px; color: var(--faint); font-size: 11.5px; }
+
+@media (max-width: 1080px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  .app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "stage" "deck" "panel"; }
+  .stage { height: 64svh; min-height: 420px; }
+  .deck { grid-template-columns: minmax(0, 1fr); }
+  .controls { border-right: 0; border-bottom: 1px solid var(--line); padding-inline: 16px; }
+  .readout { padding-inline: 16px; }
+  .panel { border-left: 0; overflow: visible; }
+  .panel section { padding-inline: 16px; }
+  .masthead { left: 16px; top: 64px; }
+  .viewbar { left: 16px; right: 16px; top: 12px; justify-content: flex-start; }
+  .hint { left: 16px; }
+  .irkey { right: 16px; bottom: 36px; }
+}
+@media (max-width: 480px) {
+  .masthead p { display: none; }
+  .tag { font-size: 10px; padding: 3px 7px 3px 5px; }
+  .stats { gap: 12px; }
+  .stat dd { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="stage" id="stage">
+    <canvas id="gl" aria-label="3D model of a hurricane. Drag to orbit, scroll to zoom."></canvas>
+    <div class="labels" id="labels"></div>
+    <div class="masthead">
+      <h1>Hurricane <span>Heat Engine</span></h1>
+      <p>A hurricane turns warm seawater into wind. Open one up, pick any part, and change the ocean below it.</p>
+    </div>
+    <div class="viewbar" role="toolbar" aria-label="View options">
+      <div class="seg" id="viewSeg">
+        <button type="button" id="v-whole" data-view="whole" aria-pressed="false">Whole</button>
+        <button type="button" id="v-cut" data-view="cutaway" aria-pressed="true">Cutaway</button>
+        <button type="button" id="v-exp" data-view="exploded" aria-pressed="false">Exploded</button>
+      </div>
+      <div class="seg" id="imgSeg">
+        <button type="button" id="i-vis" data-img="visible" aria-pressed="true">Visible</button>
+        <button type="button" id="i-ir" data-img="ir" aria-pressed="false">Infrared</button>
+      </div>
+      <div class="seg">
+        <button type="button" id="flowBtn" aria-pressed="true">Airflow</button>
+      </div>
+    </div>
+    <div class="irkey" id="irkey" hidden>
+      <div class="cap">Cloud-top temperature, °C</div>
+      <div class="bar"></div>
+      <div class="ticks"><span style="left:0%">+30</span><span style="left:34.8%">−10</span><span style="left:60.9%">−40</span><span style="left:82.6%">−65</span><span style="left:100%">−85</span></div>
+    </div>
+    <p class="hint">Drag to orbit · Scroll or pinch to zoom · Height exaggerated 8×</p>
+  </main>
+
+  <section class="deck" aria-label="Storm power">
+    <div class="controls">
+      <h2>Set the conditions</h2>
+      <div class="ctl">
+        <label for="sst">Sea surface temperature</label><output id="sstOut" for="sst">29.5 °C</output>
+        <input type="range" id="sst" min="24" max="32" step="0.1" value="29.5">
+        <small>The fuel. Below about 26.5 °C a hurricane can't sustain itself.</small>
+      </div>
+      <div class="ctl">
+        <label for="tout">Outflow temperature</label><output id="toutOut" for="tout">−75 °C</output>
+        <input type="range" id="tout" min="-85" max="-55" step="1" value="-75">
+        <small>The exhaust, 12–16 km up. Colder exhaust makes a more efficient engine.</small>
+      </div>
+      <div class="ctl">
+        <label for="shear">Vertical wind shear</label><output id="shearOut" for="shear">12 kt</output>
+        <input type="range" id="shear" min="0" max="40" step="1" value="12">
+        <small>Winds that change with height tilt the storm and tear its top off.</small>
+      </div>
+      <div class="presets" aria-label="Example conditions">
+        <button type="button" data-p="29.5,-75,12">Typical</button>
+        <button type="button" data-p="31,-80,5">Gulf in August</button>
+        <button type="button" data-p="32,-84,2">Record-warm sea</button>
+        <button type="button" data-p="26.3,-70,10">Cool water</button>
+        <button type="button" data-p="29.5,-75,30">Strong shear</button>
+      </div>
+    </div>
+    <div class="readout" aria-live="polite">
+      <h2>What the engine produces</h2>
+      <div class="verdict">
+        <div class="cat" id="catChip">4</div>
+        <div class="what"><strong id="catName">Category 4 hurricane</strong><span id="catNote">Saffir–Simpson scale, 1-minute sustained wind</span></div>
+      </div>
+      <dl class="stats">
+        <div class="stat"><dt>Max sustained wind</dt><dd id="rWind">—</dd><p id="rWind2"></p></div>
+        <div class="stat"><dt>Central pressure</dt><dd id="rPres">—</dd><p id="rPres2"></p></div>
+        <div class="stat"><dt>Engine efficiency</dt><dd id="rEff">—</dd><p>Carnot limit between sea and outflow</p></div>
+        <div class="stat hot"><dt>Heat released</dt><dd id="rHeat">—</dd><p id="rHeat2"></p></div>
+        <div class="stat"><dt>Wind power</dt><dd id="rKin">—</dd><p id="rKin2"></p></div>
+        <div class="stat"><dt>Typical surge</dt><dd id="rSurge">—</dd><p id="rSurge2"></p></div>
+      </dl>
+    </div>
+  </section>
+
+  <aside class="panel" aria-label="Parts of a hurricane">
+    <section>
+      <h2>Every part</h2>
+      <ul class="parts" id="parts"></ul>
+    </section>
+    <section class="detail" id="detail" aria-live="polite"></section>
+    <section>
+      <details class="notes">
+        <summary>How the numbers work</summary>
+        <ul>
+          <li><b>Potential intensity</b> follows Emanuel’s heat-engine theory (Emanuel 1986; Bister &amp; Emanuel 1998): V² = (C<sub>k</sub>/C<sub>d</sub>) · (T<sub>s</sub> − T<sub>o</sub>)/T<sub>o</sub> · Δk, with C<sub>k</sub>/C<sub>d</sub> = 0.9, near-surface air at 80% humidity and 1 °C cooler than the sea, and a 0.8 reduction from gradient-level to 10 m wind.</li>
+          <li><b>Realized intensity</b> scales potential intensity down with a ramp from 25.5 to 27.5 °C and a wind-shear penalty above 8 kt. Both factors are illustrative, not a forecast model.</li>
+          <li><b>Central pressure</b> uses the Atkinson–Holliday (1977) wind–pressure relation.</li>
+          <li><b>Heat released</b> scales NOAA HRD’s estimate (1.5 cm/day of rain over a 665 km radius ≈ 6 × 10¹⁴ W) by about 7% per °C of sea temperature and by storm strength. World electricity is taken as ~3.5 TW average (≈ 30,000 TWh in 2024). A Hiroshima bomb is ~6.3 × 10¹³ J.</li>
+          <li><b>Wind power</b> integrates ρ·C<sub>d</sub>·V³ over a Holland (1980) wind profile out to 500 km.</li>
+          <li><b>Surge</b> ranges are the historical Saffir–Simpson values. The NHC dropped them from the scale in 2010 because real surge depends heavily on coastline shape and depth.</li>
+          <li>Sources: <a href="https://www.aoml.noaa.gov/hrd-faq/" target="_blank" rel="noopener">NOAA HRD hurricane FAQ</a>, <a href="https://www.nhc.noaa.gov/aboutsshws.php" target="_blank" rel="noopener">NHC Saffir–Simpson scale</a>, <a href="https://emanuel.mit.edu/limits-hurricane-intensity" target="_blank" rel="noopener">Emanuel, limits on hurricane intensity</a>.</li>
+        </ul>
+      </details>
+    </section>
+    <p class="foot">Northern Hemisphere storm moving north at 10 kt. Horizontal scale true: range rings every 100 km.</p>
+  </aside>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =====================================================================
+   Physics: a small, transparent model of the hurricane heat engine
+   ===================================================================== */
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const esat = (tc) => 6.112 * Math.exp(17.67 * tc / (tc + 243.5));          // hPa (Bolton)
+const qsat = (tc, p = 1015) => { const e = esat(tc); return 0.622 * e / (p - 0.378 * e); };
+
+const WORLD_ELEC_W = 3.5e12;
+const HIROSHIMA_J = 6.3e13;
+
+const CATS = [
+  { key: 'TD', min: 0,   name: 'Tropical depression', color: '#5ebaff', surge: [0, 0],     surgeTxt: '—' },
+  { key: 'TS', min: 34,  name: 'Tropical storm',      color: '#00faf4', surge: [0.3, 1.1], surgeTxt: '< 1.2 m' },
+  { key: '1',  min: 64,  name: 'Category 1 hurricane', color: '#ffffcc', surge: [1.2, 1.5], surgeTxt: '1.2–1.5 m' },
+  { key: '2',  min: 83,  name: 'Category 2 hurricane', color: '#ffe775', surge: [1.8, 2.4], surgeTxt: '1.8–2.4 m' },
+  { key: '3',  min: 96,  name: 'Category 3 hurricane', color: '#ffc140', surge: [2.7, 3.7], surgeTxt: '2.7–3.7 m' },
+  { key: '4',  min: 113, name: 'Category 4 hurricane', color: '#ff8f20', surge: [4.0, 5.5], surgeTxt: '4.0–5.5 m' },
+  { key: '5',  min: 137, name: 'Category 5 hurricane', color: '#ff6060', surge: [5.5, 7.0], surgeTxt: '> 5.5 m' },
+];
+const catFor = (kt) => { let c = CATS[0]; for (const k of CATS) if (kt >= k.min) c = k; return c; };
+
+function hollandV(r, vm, rm, B = 2.0) {
+  const x = Math.pow(rm / Math.max(r, 1), B);
+  return vm * Math.sqrt(x * Math.exp(1 - x));
+}
+
+function model(sst, tout, shear) {
+  const Ts = sst + 273.15, To = tout + 273.15;
+  const eff = (Ts - To) / Ts;
+  const dk = 1005 * 1.0 + 2.501e6 * (qsat(sst) - 0.8 * qsat(sst - 1));
+  const pi = 0.8 * Math.sqrt(0.9 * (Ts - To) / To * dk);            // m/s at 10 m
+  const g = clamp((sst - 25.5) / 2, 0, 1);
+  const s = clamp(1 - Math.max(0, shear - 8) / 28, 0, 1);
+  const v = Math.max(8, pi * g * s);
+  const kt = v * 1.94384;
+  const p = 1010 - Math.pow(kt / 6.7, 1 / 0.644);
+  const rmKm = clamp(60 - 0.3 * (kt - 34), 18, 60);
+  const cat = catFor(kt);
+
+  // Wind power dissipation: ∫ ρ Cd V³ dA
+  let pd = 0;
+  const rm = rmKm * 1000;
+  for (let r = 500; r <= 500e3; r += 1000) {
+    const V = hollandV(r, v, rm);
+    const cd = Math.min(2.0e-3, (0.8 + 0.065 * V) * 1e-3);
+    pd += 1.15 * cd * V * V * V * 2 * Math.PI * r * 1000;
+  }
+  // Latent heat from rainfall
+  const rainCm = 1.5 * Math.pow(1.07, sst - 28) * clamp(0.4 + 0.6 * v / 50, 0.35, 1.4);
+  const heat = 2.5e6 * 1000 * (rainCm / 100 / 86400) * Math.PI * Math.pow(665e3, 2);
+
+  const zTropKm = (sst - tout) / 6.5;
+  const topKm = zTropKm * (0.62 + 0.38 * clamp(v / 50, 0, 1));
+  const ib = Math.max(0, 1013 - p);                                  // cm of inverse-barometer rise
+  const surgeMid = (cat.surge[0] + cat.surge[1]) / 2;
+  return {
+    sst, tout, shear, eff, pi, piKt: pi * 1.94384, v, kt, p, rmKm, cat, pd, heat, rainCm, topKm, ib, surgeMid,
+    shearFrac: clamp(shear / 40, 0, 1),
+    eyeFill: 1 - clamp((kt - 62) / 30, 0, 1),
+    fuelOK: sst >= 26.5,
+  };
+}
+
+/* =====================================================================
+   Parts: content for every component
+   ===================================================================== */
+const fmt = (x, d = 0) => x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const minus = (s) => String(s).replace(/-/g, '−');
+const tw = (w) => w >= 1e14 ? `${fmt(w / 1e12)} TW` : `${fmt(w / 1e12, 1)} TW`;
+
+const PARTS = [
+  { id: 9, key: 'engine', group: 'The whole machine', name: 'Heat engine', color: '#ff8a3d',
+    tag: (m) => `${fmt(m.eff * 100)}%`,
+    lede: 'A hurricane is a heat engine. It takes heat from warm seawater and dumps its waste heat into space.',
+    body: [
+      'Follow the loop on the cut face. (1) Air spirals in across the sea and picks up heat and water vapour. (2) It rises in the eyewall, where the vapour condenses and releases that heat. (3) At the top it flows outward and radiates heat to space. (4) Far from the centre it slowly sinks back down.',
+      'Kerry Emanuel showed that this loop behaves like a Carnot cycle, the ideal engine from thermodynamics. Its efficiency is set by the temperature gap between the sea surface and the outflow. The work it does is the wind.',
+    ],
+    specs: (m) => [
+      ['Hot side: sea surface', `${fmt(m.sst, 1)} °C`, true],
+      ['Cold side: outflow', minus(`${fmt(m.tout)} °C`), true],
+      ['Carnot efficiency', `${fmt(m.eff * 100, 1)}%`, true],
+      ['Potential intensity', `${fmt(m.piKt)} kt`, true],
+    ] },
+  { id: 0, key: 'ocean', group: 'Fuel and intake', name: 'Warm ocean', color: '#3d86c6',
+    tag: (m) => `${fmt(m.sst, 1)}°`,
+    lede: 'The fuel tank. Hurricanes need sea water at 26.5 °C or warmer, through a layer about 50 m deep.',
+    body: [
+      'Heat moves from the sea into the air mostly through evaporation. Every kilogram of water that evaporates carries about 2.5 MJ of latent heat. That heat is released later, when the vapour condenses in the eyewall.',
+      'Strong winds stir up cooler water from below. A slow-moving storm can cool its own fuel supply and weaken itself. Over land or cold water, the supply is cut off and the storm spins down within a day or two.',
+    ],
+    specs: (m) => [
+      ['Sea surface temperature', `${fmt(m.sst, 1)} °C`, true],
+      ['Fuel threshold', '26.5 °C'],
+      ['Warm layer needed', '~50 m deep'],
+      ['Latent heat of water', '2.5 MJ/kg'],
+    ] },
+  { id: 1, key: 'inflow', group: 'Fuel and intake', name: 'Surface inflow', color: '#46c7b8',
+    tag: () => '0–1 km',
+    lede: 'The intake. In the lowest kilometre, friction with the sea slows the wind, so air spirals in toward the low pressure.',
+    body: [
+      'The inflow crosses the isobars at about 20° and gathers heat and moisture as it goes. It spins faster as it closes in on the centre, the way a skater spins faster with arms pulled in. Physicists call this conservation of angular momentum.',
+      'Everything the storm burns enters through this thin layer. Dry air, land or cool water under it starves the engine.',
+    ],
+    specs: () => [
+      ['Depth', '~1 km'],
+      ['Inflow angle', '~20° across isobars'],
+      ['Humidity near eyewall', 'close to 100%'],
+    ] },
+  { id: 3, key: 'eyewall', group: 'The core', name: 'Eyewall', color: '#ff8a3d',
+    tag: (m) => `${fmt(m.rmKm)} km`,
+    lede: 'The combustion chamber. A ring of thunderstorms around the eye, where air rises fastest and the strongest winds blow.',
+    body: [
+      'Condensing vapour heats the column and drives updrafts of 5–10 m/s, with bursts above 20 m/s. The wall slopes outward with height, which reconnaissance pilots call the stadium effect.',
+      'Mature storms often build a second, outer eyewall that chokes off the inner one. During this eyewall replacement cycle the storm briefly weakens and then grows larger.',
+    ],
+    specs: (m) => [
+      ['Radius of maximum wind', `${fmt(m.rmKm)} km`, true],
+      ['Cloud tops', `${fmt(m.topKm, 1)} km`, true],
+      ['Typical updraft', '5–10 m/s'],
+    ] },
+  { id: 2, key: 'eye', group: 'The core', name: 'Eye', color: '#f2d49b',
+    tag: (m) => `${fmt(m.p)} hPa`,
+    lede: 'The calm centre. Air sinks gently here, warms as it is compressed, and clears the clouds away.',
+    body: [
+      'The eye has the lowest pressure at sea level and only light winds, sometimes with blue sky or stars overhead. The sinking air makes the core up to 10 °C or more warmer than its surroundings at the same height. That warm core is what holds the surface pressure so low.',
+      'Weak storms have a ragged eye or none at all. Intense storms have a small, sharp one. Lower the shear or warm the sea and watch it clear.',
+    ],
+    specs: (m) => [
+      ['Central pressure', `${fmt(m.p)} hPa`, true],
+      ['Eye diameter', m.eyeFill > 0.6 ? 'not yet formed' : `~${fmt(m.rmKm * 1.4)} km`, true],
+      ['Typical range', '30–65 km'],
+    ] },
+  { id: 4, key: 'rainbands', group: 'The body', name: 'Spiral rainbands', color: '#9ec3d9',
+    tag: () => '80–300 km',
+    lede: 'Curved bands of showers and thunderstorms that spiral in toward the eyewall.',
+    body: [
+      'Rainbands can reach hundreds of kilometres from the centre, with lighter rain in the gaps between them. They bring bursts of heavy rain and gusty wind. At landfall they often spawn tornadoes, mostly in the right-front quadrant.',
+      'Much of a storm’s total rainfall comes from its bands rather than the eyewall. That is why flooding can reach far inland from the track.',
+    ],
+    specs: (m) => [
+      ['Distance from centre', '80–300+ km'],
+      ['Rain rate (storm average)', `${fmt(m.rainCm, 1)} cm/day`, true],
+      ['Tornado risk', 'right-front quadrant'],
+    ] },
+  { id: 5, key: 'canopy', group: 'The body', name: 'Outflow canopy', color: '#b9c6ff',
+    tag: (m) => minus(`${fmt(m.tout)}°`),
+    lede: 'The exhaust. At the top of the troposphere, air rushes outward and spreads a sheet of ice cloud over the storm.',
+    body: [
+      'This canopy is what satellites see. Switch to Infrared: its tops are among the coldest clouds on Earth. Up here the air radiates its heat to space, closing the engine’s loop.',
+      'The Coriolis effect turns the outflow the opposite way, so it spins clockwise in the Northern Hemisphere. Open outflow channels let the storm exhale and strengthen.',
+    ],
+    specs: (m) => [
+      ['Altitude', `${fmt(m.topKm, 1)} km`, true],
+      ['Cloud-top temperature', minus(`${fmt(m.tout)} °C`), true],
+      ['Rotation (N. Hemisphere)', 'clockwise'],
+    ] },
+  { id: 6, key: 'wind', group: 'Impacts', name: 'Wind field', color: '#ffc140',
+    tag: (m) => `${fmt(m.kt)} kt`,
+    lede: 'Wind peaks at the eyewall and fades with distance. One side of the storm is always worse.',
+    body: [
+      'The storm’s forward motion adds to the spin on one side and subtracts on the other. In the Northern Hemisphere the right side of the track is stronger, and the right-front quadrant is the worst.',
+      'Hurricane-force winds (64 kt and up) may reach only 30–50 km from the centre. Tropical-storm-force winds can spread over 300 km. The colours on the sea use the Saffir–Simpson palette.',
+    ],
+    specs: (m) => [
+      ['Max sustained wind', `${fmt(m.kt)} kt · ${fmt(m.kt * 1.15078)} mph`, true],
+      ['Radius of maximum wind', `${fmt(m.rmKm)} km`, true],
+      ['Forward motion', '10 kt, north'],
+      ['Stronger side', 'right of track'],
+    ] },
+  { id: 7, key: 'surge', group: 'Impacts', name: 'Storm surge', color: '#3fd0ff',
+    tag: (m) => m.cat.surgeTxt,
+    lede: 'Often the deadliest part. Wind piles seawater against the coast, and the low pressure lets the sea bulge upward.',
+    body: [
+      'Most surge comes from wind pushing water toward shore, so shallow, gently sloping coasts see the highest water. The low pressure adds about 1 cm of rise for every hectopascal below normal. The dome on the model is exaggerated so you can see it.',
+      'From 1963 to 2012, storm surge caused about half of the direct deaths from Atlantic tropical cyclones in the US (Rappaport 2014).',
+    ],
+    specs: (m) => [
+      ['Rise from low pressure', `${fmt(m.ib)} cm`, true],
+      ['Typical surge, this category', m.cat.surgeTxt, true],
+      ['Katrina, 2005', '8.5 m at Pass Christian'],
+    ] },
+  { id: 8, key: 'coriolis', group: 'Impacts', name: 'Coriolis spin', color: '#d7a6ff',
+    tag: () => '5°–30°',
+    lede: 'Earth’s rotation gives the inflowing air its spin. Without it, air would rush straight into the low and fill it.',
+    body: [
+      'Northern Hemisphere hurricanes turn counterclockwise, and Southern Hemisphere cyclones turn clockwise. The Coriolis effect is zero at the equator, so tropical cyclones almost never form within about 5° of it.',
+      'The effect only matters over hundreds of kilometres and many hours. A draining sink is far too small to feel it.',
+    ],
+    specs: () => [
+      ['Rotation (N. Hemisphere)', 'counterclockwise'],
+      ['Formation latitudes', '~5°–30°'],
+      ['Coriolis parameter at 20°N', '5.0 × 10⁻⁵ s⁻¹'],
+    ] },
+];
+const PART = Object.fromEntries(PARTS.map(p => [p.key, p]));
+
+/* =====================================================================
+   State
+   ===================================================================== */
+const state = { sst: 29.5, tout: -75, shear: 12, view: 'cutaway', img: 'visible', flow: true, focus: 'engine' };
+let M = model(state.sst, state.tout, state.shear);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* =====================================================================
+   Three.js scene
+   ===================================================================== */
+const stage = document.getElementById('stage');
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x060b12, 0);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 800);
+camera.position.set(28, 24, 70);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(-2, 3, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 28;
+controls.maxDistance = 220;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.enablePan = false;
+
+const KM = 10;           // 1 unit = 10 km horizontally
+const VX = 8;            // vertical exaggeration
+const zUnits = (km) => km * VX / KM;
+
+// ---------- shared uniforms ----------
+const N = 10;
+const U = {
+  uTime: { value: 0 }, uRm: { value: 3 }, uTop: { value: 12 }, uTilt: { value: 0 }, uShear: { value: 0 },
+  uEyeFill: { value: 0 }, uCut: { value: 1 }, uIR: { value: 0 }, uSST: { value: 29.5 }, uTout: { value: -75 },
+  uSpin: { value: 0.5 }, uScale: { value: 600 }, uBandR: { value: 42 }, uFlow: { value: 1 }, uVm: { value: 60 },
+  uSurge: { value: 0 }, uWindOn: { value: 0 }, uSurgeOn: { value: 0 }, uEngine: { value: 1 },
+  uDim: { value: new Array(N).fill(1) }, uHi: { value: new Array(N).fill(0) },
+  uOffY: { value: new Array(N).fill(0) }, uOffR: { value: new Array(N).fill(0) },
+};
+
+const GLSL_COMMON = /* glsl */`
+  uniform float uTime, uRm, uTop, uTilt, uShear, uEyeFill, uCut, uIR, uSST, uTout, uSpin, uScale, uBandR, uFlow, uVm, uEngine;
+  uniform float uDim[10]; uniform float uHi[10]; uniform float uOffY[10]; uniform float uOffR[10];
+  float ramp(float a, float b, float t) { return clamp((t - a) / (b - a), 0.0, 1.0); }
+  vec3 irColor(float t) {
+    vec3 c = vec3(0.07, 0.08, 0.09);
+    c = mix(c, vec3(0.42, 0.44, 0.47), ramp(30.0, -10.0, t));
+    c = mix(c, vec3(0.78, 0.80, 0.82), ramp(-10.0, -30.0, t));
+    c = mix(c, vec3(0.25, 0.65, 1.00), ramp(-30.0, -40.0, t));
+    c = mix(c, vec3(0.18, 0.82, 0.48), ramp(-40.0, -50.0, t));
+    c = mix(c, vec3(0.96, 0.88, 0.29), ramp(-50.0, -58.0, t));
+    c = mix(c, vec3(1.00, 0.54, 0.16), ramp(-58.0, -65.0, t));
+    c = mix(c, vec3(0.88, 0.14, 0.23), ramp(-65.0, -72.0, t));
+    c = mix(c, vec3(0.43, 0.06, 0.24), ramp(-72.0, -78.0, t));
+    c = mix(c, vec3(1.00, 1.00, 1.00), ramp(-78.0, -85.0, t));
+    return c;
+  }
+`;
+
+const SPRITE_FRAG = /* glsl */`
+  varying vec4 vCol;
+  void main() {
+    vec2 d = gl_PointCoord - 0.5;
+    float r = length(d) * 2.0;
+    if (r > 1.0 || vCol.a < 0.002) discard;
+    float a = (1.0 - r * r) * (1.0 - r * r);
+    gl_FragColor = vec4(vCol.rgb, vCol.a * a);
+  }
+`;
+
+// seeded random
+let seed = 1337;
+const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
+
+// ---------- clouds ----------
+function buildClouds() {
+  const P = [], R = [], C = [];
+  const push = (p, r, c) => { P.push(...p); R.push(...r); C.push(c); };
+  // eyewall
+  for (let i = 0; i < 9000; i++) push([rnd(), rnd() * Math.PI * 2, gauss(), 0], [rnd(), rnd(), 0, 0], 3);
+  // eye (low stratocumulus + fill for weak storms)
+  for (let i = 0; i < 1800; i++) push([rnd(), rnd() * Math.PI * 2, rnd(), 0], [rnd(), rnd(), 0, 0], 2);
+  // rainbands: 6 spiral arms
+  for (let b = 0; b < 6; b++) {
+    const th = b * Math.PI * 2 / 6 + rnd() * 0.5;
+    const rf = rnd();
+    const n = 1500 + Math.floor(rnd() * 800);
+    for (let i = 0; i < n; i++) {
+      // clump particles into cells along the band
+      const s = Math.min(0.999, Math.floor(rnd() * 26) / 26 + rnd() * 0.05);
+      push([s, th, gauss() * 1.4, Math.pow(rnd(), 0.7)], [rnd(), rnd(), rf, 0], 4);
+    }
+  }
+  // canopy: clumpy ice sheet
+  for (let k = 0; k < 900; k++) {
+    const rN = Math.sqrt(rnd()), th = rnd() * Math.PI * 2;
+    const m = 16 + Math.floor(rnd() * 8);
+    for (let i = 0; i < m; i++) {
+      push([clamp(rN + gauss() * 0.03, 0, 1), th + gauss() * 0.08 / Math.max(rN, 0.15), gauss(), 0], [rnd(), rnd(), 0, 0], 5);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(C.length * 3), 3));
+  g.setAttribute('aP', new THREE.Float32BufferAttribute(P, 4));
+  g.setAttribute('aR', new THREE.Float32BufferAttribute(R, 4));
+  g.setAttribute('aComp', new THREE.Float32BufferAttribute(C, 1));
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 200);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: U, transparent: true, depthWrite: false,
+    vertexShader: GLSL_COMMON + /* glsl */`
+      attribute vec4 aP; attribute vec4 aR; attribute float aComp;
+      varying vec4 vCol;
+      vec3 compColor(int c) {
+        if (c == 2) return vec3(0.95, 0.83, 0.61);
+        if (c == 3) return vec3(1.0, 0.54, 0.24);
+        if (c == 4) return vec3(0.62, 0.76, 0.85);
+        return vec3(0.73, 0.78, 1.0);
+      }
+      void main() {
+        int c = int(aComp + 0.5);
+        float r, th, y, a, sz;
+        float t = uTime;
+        if (c == 3) {
+          float zN = fract(aP.x + t * 0.012);
+          r = uRm * (1.0 + 0.62 * pow(zN, 1.6)) + aP.z * uRm * 0.26 * (1.0 - 0.3 * zN);
+          y = zN * uTop * 0.97;
+          th = aP.y + t * uSpin;
+          a = 0.11 * smoothstep(0.0, 0.05, zN) * (1.0 - smoothstep(0.9, 1.0, zN));
+          sz = mix(2.4, 4.0, zN) * (0.7 + 0.6 * aR.x);
+        } else if (c == 2) {
+          r = uRm * 0.92 * sqrt(aP.x);
+          y = mix(0.2 + aP.z * 1.0, aP.z * uTop * 0.85, uEyeFill);
+          th = aP.y + t * uSpin * 0.6;
+          a = mix(0.09, 0.14, uEyeFill);
+          sz = 2.4 * (0.7 + 0.6 * aR.x);
+        } else if (c == 4) {
+          float s = fract(aP.x + t * 0.004);
+          float rOut = uBandR * (0.72 + 0.28 * aR.z);
+          float rIn = uRm * 1.9;
+          r = mix(rOut, rIn, s);
+          th = aP.y + log(rOut / r) * 2.4 + t * uSpin * 0.1;
+          r += aP.z * (0.5 + 1.4 * (1.0 - s)) + uOffR[4];
+          y = 0.3 + aP.w * mix(3.2, 7.5, s) * (uTop / 12.8);
+          a = 0.10 * sin(3.14159 * s);
+          sz = 2.8 * (0.7 + 0.6 * aR.x);
+        } else {
+          float rMin = mix(uRm * 1.3, 0.0, uEyeFill);
+          r = mix(rMin, uBandR * 1.1, aP.x);
+          float om = uSpin * 0.3 * (uRm * 1.6 / max(r, 1.0)) - 0.03;
+          th = aP.y + t * om;
+          y = uTop * (0.94 + 0.035 * aP.z) - 1.6 * aP.x * aP.x;
+          a = 0.09 * (1.0 - smoothstep(0.7, 1.0, aP.x));
+          sz = mix(4.0, 6.5, aP.x) * (0.7 + 0.6 * aR.x);
+        }
+        vec3 p = vec3(r * cos(th), y, -r * sin(th));
+        p.x += uTilt * y;
+        if (c == 3 || c == 4 || c == 5) a *= mix(1.0, 0.3 + 0.7 * smoothstep(-0.8, 0.4, cos(th)), uShear);
+        a *= 1.0 - uCut * smoothstep(-0.5, 0.5, p.z);
+        p.y += uOffY[c];
+        float tC = max(uSST - 6.5 * y * 1.25, uTout - 3.0);
+        float lit = clamp(0.28 + 0.85 * y / uTop, 0.0, 1.0);
+        vec3 vis = mix(vec3(0.33, 0.38, 0.46), vec3(0.97, 0.98, 1.0), lit);
+        vec3 col = mix(vis, irColor(tC), uIR);
+        col = mix(col, compColor(c), 0.5 * uHi[c]);
+        a *= uDim[c] * mix(1.0, 1.5, uIR);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = min(sz * uScale / -mv.z, 160.0);
+        vCol = vec4(col, a * (0.7 + 0.6 * aR.y));
+      }
+    `,
+    fragmentShader: SPRITE_FRAG,
+  });
+  const pts = new THREE.Points(g, mat);
+  pts.frustumCulled = false;
+  pts.renderOrder = 2;
+  return pts;
+}
+
+// ---------- airflow tracers (the secondary circulation) ----------
+function buildTracers() {
+  const T = [], L = [], K = [];
+  const TRAIL = 9;
+  const add = (kind, n) => {
+    for (let i = 0; i < n; i++) {
+      const base = [rnd(), rnd() * 2 - 1, rnd(), rnd() * Math.PI * 2];
+      for (let j = 0; j < TRAIL; j++) { T.push(...base); L.push(j / TRAIL); K.push(kind); }
+    }
+  };
+  add(0, 1100);
+  add(1, 160);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(K.length * 3), 3));
+  g.setAttribute('aT', new THREE.Float32BufferAttribute(T, 4));
+  g.setAttribute('aLag', new THREE.Float32BufferAttribute(L, 1));
+  g.setAttribute('aKind', new THREE.Float32BufferAttribute(K, 1));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: GLSL_COMMON + /* glsl */`
+      attribute vec4 aT; attribute float aLag; attribute float aKind;
+      varying vec4 vCol;
+      void main() {
+        vec3 moist = vec3(0.27, 0.78, 0.72), heat = vec3(1.0, 0.54, 0.24), cold = vec3(0.73, 0.78, 1.0), warm = vec3(0.95, 0.83, 0.61);
+        float s = fract(aT.x + uTime * 0.017 - aLag * 0.0075);
+        float r, y, th, a = 1.0; vec3 col; int comp;
+        float R0 = uBandR * (0.9 + 0.12 * aT.y);
+        if (aKind < 0.5) {
+          if (s < 0.45) {
+            float u = s / 0.45;
+            r = mix(R0, uRm * 1.05, pow(u, 0.8));
+            y = 0.25 + 0.55 * aT.z;
+            th = aT.w + 7.0 * u;
+            col = mix(moist * 0.7, moist, u); comp = 1;
+            a = smoothstep(0.0, 0.08, u);
+          } else if (s < 0.6) {
+            float u = (s - 0.45) / 0.15;
+            y = mix(0.25 + 0.55 * aT.z, uTop * 0.95, u);
+            r = uRm * (1.05 + 0.55 * pow(u, 1.5)) + aT.y * 0.7 * u;
+            th = aT.w + 7.0 + 3.2 * u;
+            col = mix(moist, heat, smoothstep(0.0, 0.35, u)); comp = 3;
+          } else {
+            float u = (s - 0.6) / 0.4;
+            r = mix(uRm * 1.6 + aT.y * 0.7, R0 * 1.05, pow(u, 0.7));
+            y = uTop * (0.95 - 0.12 * u) + aT.z * 0.5 * u;
+            th = aT.w + 10.2 + 1.3 * u - 3.2 * u * u;
+            col = mix(heat, cold, smoothstep(0.0, 0.3, u)); comp = 5;
+            a = 1.0 - smoothstep(0.85, 1.0, u);
+          }
+        } else {
+          float u = s;
+          r = uRm * 0.72 * sqrt(abs(aT.y));
+          y = uTop * 0.92 * (1.0 - u);
+          th = aT.w + 1.5 * u;
+          col = warm; comp = 2;
+          a = 0.7 * smoothstep(0.0, 0.1, u) * (1.0 - smoothstep(0.85, 1.0, u)) * (1.0 - uEyeFill);
+        }
+        th += uTime * uSpin * 0.08;
+        vec3 p = vec3(r * cos(th), y, -r * sin(th));
+        p.x += uTilt * y;
+        a *= 1.0 - uCut * smoothstep(-0.5, 0.5, p.z);
+        p.y += uOffY[comp];
+        a *= (1.0 - aLag) * uFlow * max(uDim[comp], 0.0);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = min(0.55 * (1.0 - 0.4 * aLag) * uScale / -mv.z, 14.0);
+        vCol = vec4(col, a * 0.9);
+      }
+    `,
+    fragmentShader: SPRITE_FRAG,
+  });
+  const pts = new THREE.Points(g, mat);
+  pts.frustumCulled = false;
+  pts.renderOrder = 3;
+  return pts;
+}
+
+// ---------- heat-engine loop drawn on the cut face ----------
+function buildEngineLoop() {
+  const n = 420;
+  const I = [];
+  for (let i = 0; i < n; i++) I.push(i / n);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('aU', new THREE.Float32BufferAttribute(I, 1));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: U, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+    vertexShader: GLSL_COMMON + /* glsl */`
+      attribute float aU;
+      varying vec4 vCol;
+      void main() {
+        float u = fract(aU + uTime * 0.025);
+        float R0 = uBandR * 1.02, yb = 0.45, yt = uTop * 0.95, yo = uTop * 0.84;
+        float r, y; vec3 col;
+        vec3 moist = vec3(0.27, 0.78, 0.72), heat = vec3(1.0, 0.54, 0.24), cold = vec3(0.73, 0.78, 1.0);
+        if (u < 0.35) { float k = u / 0.35; r = mix(R0, uRm * 1.05, k); y = yb; col = mix(moist, heat, k); }
+        else if (u < 0.5) { float k = (u - 0.35) / 0.15; r = uRm * (1.05 + 0.55 * pow(k, 1.5)); y = mix(yb, yt, k); col = mix(heat, vec3(1.0, 0.85, 0.7), k); }
+        else if (u < 0.8) { float k = (u - 0.5) / 0.3; r = mix(uRm * 1.6, R0, k); y = mix(yt, yo, k); col = mix(vec3(1.0, 0.85, 0.7), cold, smoothstep(0.0, 0.4, k)); }
+        else { float k = (u - 0.8) / 0.2; r = R0; y = mix(yo, yb, k); col = mix(cold, moist, k); }
+        vec3 p = vec3(-r, y, 0.02);
+        p.x += uTilt * y;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        float dash = step(0.35, fract(aU * 70.0));
+        gl_PointSize = min(0.95 * uScale / -mv.z, 12.0);
+        vCol = vec4(col, uEngine * mix(0.35, 1.0, dash));
+      }
+    `,
+    fragmentShader: SPRITE_FRAG,
+  });
+  const pts = new THREE.Points(g, mat);
+  pts.frustumCulled = false;
+  pts.renderOrder = 4;
+  return pts;
+}
+
+// ---------- ocean with wind field and surge overlays ----------
+function buildOcean() {
+  const g = new THREE.PlaneGeometry(220, 220, 240, 240);
+  g.rotateX(-Math.PI / 2);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: Object.assign({ uSurge: U.uSurge, uWindOn: U.uWindOn, uSurgeOn: U.uSurgeOn }, U),
+    transparent: true, depthWrite: true,
+    extensions: {},
+    vertexShader: GLSL_COMMON + /* glsl */`
+      uniform float uSurge;
+      varying vec2 vXZ; varying float vH;
+      void main() {
+        vec3 p = position;
+        float r = length(p.xz);
+        float th = atan(-p.z, p.x);
+        float dome = uSurge * exp(-pow(r / (uRm * 2.6), 2.0)) * (0.7 + 0.3 * cos(th - 0.785));
+        float wave = 0.06 * sin(p.x * 0.33 + uTime * 1.2) * sin(p.z * 0.29 - uTime * 0.9) * smoothstep(90.0, 10.0, r);
+        p.y += dome + wave + uOffY[0];
+        vXZ = p.xz; vH = dome;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }
+    `,
+    fragmentShader: GLSL_COMMON + /* glsl */`
+      uniform float uWindOn, uSurgeOn, uSurge;
+      varying vec2 vXZ; varying float vH;
+      vec3 ssColor(float kt) {
+        vec3 c = vec3(0.37, 0.73, 1.0);
+        c = mix(c, vec3(0.0, 0.98, 0.96), step(34.0, kt));
+        c = mix(c, vec3(1.0, 1.0, 0.8), step(64.0, kt));
+        c = mix(c, vec3(1.0, 0.91, 0.46), step(83.0, kt));
+        c = mix(c, vec3(1.0, 0.76, 0.25), step(96.0, kt));
+        c = mix(c, vec3(1.0, 0.56, 0.13), step(113.0, kt));
+        c = mix(c, vec3(1.0, 0.38, 0.38), step(137.0, kt));
+        return c;
+      }
+      void main() {
+        float r = length(vXZ);
+        float th = atan(-vXZ.y, vXZ.x);
+        float warmth = clamp((uSST - 24.0) / 8.0, 0.0, 1.0);
+        vec3 col = mix(vec3(0.02, 0.07, 0.14), vec3(0.03, 0.17, 0.24), warmth);
+        col += vec3(0.02, 0.05, 0.07) * (0.5 + 0.5 * sin(vXZ.x * 0.21 + vXZ.y * 0.17 + uTime * 0.6));
+        col = mix(col, irColor(uSST) * 0.9, uIR);
+        // range rings every 100 km
+        float d = abs(r - 10.0 * floor(r / 10.0 + 0.5));
+        float w = fwidth(r);
+        float ring = (1.0 - smoothstep(0.0, w * 1.5, d)) * step(5.0, r) * step(r, 55.0);
+        col += vec3(0.16, 0.24, 0.32) * ring * 0.7;
+        // wind field, Holland profile + forward motion on the right side
+        float x = pow(uRm / max(r, 0.01), 2.0);
+        float v = uVm * sqrt(x * exp(1.0 - x));
+        v += 5.0 * cos(th) * clamp(v / uVm, 0.0, 1.0);
+        float kt = v * 1.94384;
+        vec3 wc = ssColor(kt);
+        float wa = uWindOn * 0.8 * smoothstep(28.0, 36.0, kt);
+        col = mix(col, wc * 0.85, wa);
+        // surge dome shading
+        float sh = clamp(vH / max(uSurge, 0.001), 0.0, 1.0);
+        col = mix(col, mix(vec3(0.05, 0.35, 0.5), vec3(0.6, 0.95, 1.0), sh), uSurgeOn * smoothstep(0.05, 0.3, sh) * 0.85);
+        float fade = 1.0 - smoothstep(70.0, 105.0, r);
+        gl_FragColor = vec4(col, fade);
+      }
+    `,
+  });
+  const mesh = new THREE.Mesh(g, mat);
+  mesh.renderOrder = 1;
+  return mesh;
+}
+
+// ---------- Coriolis spin ring and storm-motion arrow ----------
+const spinGroup = new THREE.Group();
+const spinMat = new THREE.MeshBasicMaterial({ color: 0xd7a6ff, transparent: true, opacity: 0, depthWrite: false });
+for (let i = 0; i < 12; i++) {
+  const a = i / 12 * Math.PI * 2;
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.9, 3.2, 12), spinMat);
+  const R = 38;
+  cone.position.set(R * Math.cos(a), 0.6, -R * Math.sin(a));
+  // tangent pointing counterclockwise seen from above
+  const tangent = new THREE.Vector3(-Math.sin(a), 0, -Math.cos(a));
+  cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+  spinGroup.add(cone);
+}
+const ringGeo = new THREE.TorusGeometry(38, 0.12, 6, 160);
+ringGeo.rotateX(Math.PI / 2);
+spinGroup.add(new THREE.Mesh(ringGeo, spinMat));
+
+const motionMat = new THREE.MeshBasicMaterial({ color: 0xffc140, transparent: true, opacity: 0, depthWrite: false });
+const motion = new THREE.Group();
+const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 14, 12), motionMat);
+shaft.rotation.x = -Math.PI / 2; shaft.position.set(0, 0, -7);
+const head = new THREE.Mesh(new THREE.ConeGeometry(1.4, 3.6, 16), motionMat);
+head.rotation.x = -Math.PI / 2; head.position.set(0, 0, -15.5);
+motion.add(shaft, head);
+
+const ocean = buildOcean();
+const clouds = buildClouds();
+const tracers = buildTracers();
+const loop = buildEngineLoop();
+scene.add(ocean, clouds, tracers, loop, spinGroup, motion);
+
+/* =====================================================================
+   Smoothed targets → uniforms
+   ===================================================================== */
+const cur = {}, tgt = {};
+function setTargets() {
+  const m = M;
+  tgt.rm = m.rmKm / KM;
+  tgt.top = zUnits(m.topKm);
+  tgt.vm = m.v;
+  tgt.spin = 0.18 + 0.55 * clamp(m.v / 70, 0, 1.2);
+  tgt.tilt = m.shearFrac * 0.9;
+  tgt.shear = m.shearFrac;
+  tgt.eyeFill = m.eyeFill;
+  tgt.sst = m.sst; tgt.tout = m.tout;
+  tgt.cut = state.view === 'cutaway' ? 1 : 0;
+  tgt.explode = state.view === 'exploded' ? 1 : 0;
+  tgt.ir = state.img === 'ir' ? 1 : 0;
+  tgt.flow = state.flow ? 1 : 0;
+  const f = PART[state.focus]?.id ?? -1;
+  tgt.windOn = f === 6 ? 1 : 0;
+  tgt.surgeOn = f === 7 ? 1 : 0;
+  tgt.engine = f === 9 ? 1 : 0;
+  tgt.spinVis = f === 8 ? 1 : 0;
+  tgt.motionVis = f === 6 ? 1 : 0;
+  tgt.surge = m.surgeMid * (f === 7 ? 0.9 : 0.12) + m.ib * 0.004;
+  for (let i = 0; i < N; i++) {
+    let dim = 1, hi = 0;
+    if (f >= 0) {
+      if (f === 9) dim = [2, 3, 4, 5].includes(i) ? 0.6 : 1;
+      else if (f === 8) dim = [2, 3, 4, 5].includes(i) ? 0.4 : 1;
+      else if ([0, 6, 7].includes(f)) dim = [2, 3, 4, 5].includes(i) ? 0.12 : 0.5;
+      else { dim = i === f ? 1 : 0.1; hi = i === f ? 1 : 0; }
+    }
+    tgt['dim' + i] = dim; tgt['hi' + i] = hi;
+  }
+}
+setTargets();
+Object.assign(cur, tgt);
+
+const OFFY = [-14, -6, 0, 0, 0, 11, -14, -14, -14, 0];
+function applyUniforms(dt) {
+  const k = 1 - Math.exp(-dt * 4.5);
+  for (const key in tgt) cur[key] += (tgt[key] - cur[key]) * k;
+  U.uRm.value = cur.rm; U.uTop.value = cur.top; U.uVm.value = cur.vm; U.uSpin.value = cur.spin;
+  U.uTilt.value = cur.tilt; U.uShear.value = cur.shear; U.uEyeFill.value = cur.eyeFill;
+  U.uSST.value = cur.sst; U.uTout.value = cur.tout; U.uCut.value = cur.cut; U.uIR.value = cur.ir;
+  U.uFlow.value = cur.flow; U.uWindOn.value = cur.windOn; U.uSurgeOn.value = cur.surgeOn; U.uEngine.value = cur.engine;
+  U.uSurge.value = cur.surge;
+  for (let i = 0; i < N; i++) {
+    U.uDim.value[i] = cur['dim' + i]; U.uHi.value[i] = cur['hi' + i];
+    U.uOffY.value[i] = OFFY[i] * cur.explode;
+  }
+  U.uOffR.value[4] = 9 * cur.explode;
+  spinMat.opacity = 0.85 * cur.spinVis;
+  spinGroup.visible = cur.spinVis > 0.01;
+  spinGroup.position.y = OFFY[8] * cur.explode;
+  motionMat.opacity = 0.9 * cur.motionVis;
+  motion.visible = cur.motionVis > 0.01;
+  motion.position.y = OFFY[6] * cur.explode + 0.8;
+}
+
+/* =====================================================================
+   Labels pinned to 3D anchors
+   ===================================================================== */
+const labelsEl = document.getElementById('labels');
+const LABELS = [];
+function makeTag(key, text, color, cls = '') {
+  const el = document.createElement(key ? 'button' : 'div');
+  if (key) { el.type = 'button'; el.addEventListener('click', () => select(key)); el.setAttribute('aria-label', `Show ${text}`); }
+  el.className = 'tag ' + cls;
+  el.style.setProperty('--c', color);
+  el.innerHTML = `<i></i>${text}`;
+  labelsEl.appendChild(el);
+  return el;
+}
+const mainTags = ['ocean', 'inflow', 'eyewall', 'eye', 'rainbands', 'canopy'];
+for (const key of mainTags) LABELS.push({ key, el: makeTag(key, PART[key].name, PART[key].color), when: () => state.focus !== 'engine' || key === 'canopy' || key === 'rainbands' });
+LABELS.push({ key: 'wind', el: makeTag('wind', 'Right-front quadrant', PART.wind.color), when: () => state.focus === 'wind' });
+LABELS.push({ key: 'motion', el: makeTag(null, 'Storm motion 10 kt', PART.wind.color, 'note'), when: () => state.focus === 'wind' });
+LABELS.push({ key: 'surge', el: makeTag('surge', 'Surge dome (exaggerated)', PART.surge.color), when: () => state.focus === 'surge' });
+LABELS.push({ key: 'coriolis', el: makeTag('coriolis', 'Counterclockwise spin', PART.coriolis.color), when: () => state.focus === 'coriolis' });
+const LEGS = [
+  ['1', 'Heat in from the sea', '#46c7b8'],
+  ['2', 'Rise, condense, release heat', '#ff8a3d'],
+  ['3', 'Heat out to space', '#b9c6ff'],
+  ['4', 'Sink far from the centre', '#8b9cb0'],
+];
+LEGS.forEach(([n, t, c], i) => {
+  const el = makeTag(null, `<b>${n}</b>&nbsp;${t}`, c, 'leg');
+  LABELS.push({ key: 'leg' + i, el, when: () => state.focus === 'engine' });
+});
+
+const v3 = new THREE.Vector3();
+function anchor(key) {
+  const rm = cur.rm, top = cur.top, e = cur.explode, tilt = cur.tilt, R0 = 42 * 1.02;
+  const oy = OFFY[0] * e;
+  switch (key) {
+    case 'ocean': return v3.set(-58, oy + 0.4, -30);
+    case 'inflow': return v3.set(-30, 0.9 + OFFY[1] * e, -3);
+    case 'eyewall': return v3.set(-rm * 1.35 + tilt * top * 0.62, top * 0.62, -0.5);
+    case 'eye': return v3.set(tilt * top * 0.22, top * 0.22 + 0.4, -1);
+    case 'rainbands': return v3.set(24 + 9 * e, 3.2, -24);
+    case 'canopy': return v3.set(20 + tilt * top, top + 0.8 + OFFY[5] * e, -26);
+    case 'wind': return v3.set(rm * 1.6, oy + 0.6, -rm * 1.6);
+    case 'motion': return v3.set(0, oy + 1.2, -18);
+    case 'surge': return v3.set(rm * 1.2, oy + cur.surge + 0.6, -rm * 1.2);
+    case 'coriolis': return v3.set(-27, oy + 1.2, -27);
+    case 'leg0': return v3.set(-(R0 + rm) / 2, 0.45, 0);
+    case 'leg1': return v3.set(-rm * 1.3 + tilt * top * 0.5, top * 0.5, 0);
+    case 'leg2': return v3.set(-(R0 + rm * 1.6) / 2 + tilt * top * 0.9, top * 0.9 + 0.8, 0);
+    case 'leg3': return v3.set(-R0 + tilt * top * 0.45, top * 0.45, 0);
+  }
+  return v3.set(0, 0, 0);
+}
+function placeLabels(w, h) {
+  for (const L of LABELS) {
+    const show = L.when();
+    if (!show) { L.el.style.opacity = '0'; L.el.style.pointerEvents = 'none'; continue; }
+    const p = anchor(L.key).clone().project(camera);
+    const behind = p.z > 1;
+    const x = (p.x * 0.5 + 0.5) * w, y = (-p.y * 0.5 + 0.5) * h;
+    L.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`;
+    const vis = !behind && x > -20 && x < w + 20 && y > 0 && y < h;
+    L.el.style.opacity = vis ? '1' : '0';
+    L.el.style.pointerEvents = vis && L.el.tagName === 'BUTTON' ? 'auto' : 'none';
+    L.el.classList.toggle('on', L.key === state.focus);
+  }
+}
+
+/* =====================================================================
+   UI: parts list, detail panel, controls, readouts
+   ===================================================================== */
+const partsEl = document.getElementById('parts');
+const detailEl = document.getElementById('detail');
+function renderParts() {
+  let html = '', lastGroup = '';
+  for (const p of PARTS) {
+    if (p.group !== lastGroup) { html += `<li class="group">${p.group}</li>`; lastGroup = p.group; }
+    html += `<li><button type="button" id="part-${p.key}" data-key="${p.key}" aria-pressed="${p.key === state.focus}" style="--c:${p.color}"><i></i><span>${p.name}</span><em>${p.tag(M)}</em></button></li>`;
+  }
+  partsEl.innerHTML = html;
+}
+partsEl.addEventListener('click', (e) => { const b = e.target.closest('button[data-key]'); if (b) select(b.dataset.key); });
+
+function renderDetail() {
+  const p = PART[state.focus];
+  if (!p) { detailEl.innerHTML = ''; return; }
+  detailEl.style.setProperty('--c', p.color);
+  const specs = p.specs(M).map(([k, v, live]) => `<div><dt>${k}</dt><dd class="${live ? 'live' : ''}">${v}</dd></div>`).join('');
+  detailEl.innerHTML = `<h2>${p.group}</h2><h3>${p.name}</h3><p class="lede">${p.lede}</p>${p.body.map(t => `<p>${t}</p>`).join('')}<dl class="specs">${specs}</dl>`;
+}
+
+function select(key) {
+  state.focus = state.focus === key && key !== 'engine' ? 'engine' : key;
+  if (['eyewall', 'eye', 'engine', 'inflow'].includes(state.focus) && state.view === 'whole') setView('cutaway');
+  setTargets(); renderParts(); renderDetail();
+}
+
+const $ = (id) => document.getElementById(id);
+function renderReadout() {
+  const m = M;
+  $('catChip').textContent = m.cat.key;
+  $('catChip').style.setProperty('--cc', m.cat.color);
+  $('catName').textContent = m.cat.name;
+  $('catNote').textContent = m.fuelOK
+    ? `Saffir–Simpson scale · potential intensity ${fmt(m.piKt)} kt`
+    : 'Sea too cool: deep thunderstorms can’t keep the engine running';
+  $('rWind').innerHTML = `${fmt(m.kt)} <small>kt</small>`;
+  $('rWind2').textContent = `${fmt(m.kt * 1.15078)} mph · ${fmt(m.kt * 1.852)} km/h`;
+  $('rPres').innerHTML = `${fmt(m.p)} <small>hPa</small>`;
+  $('rPres2').textContent = `${fmt(1013 - m.p)} hPa below normal`;
+  $('rEff').innerHTML = `${fmt(m.eff * 100, 1)}<small>%</small>`;
+  $('rHeat').innerHTML = `${fmt(m.heat / 1e12)} <small>TW</small>`;
+  $('rHeat2').textContent = `≈ ${fmt(m.heat / WORLD_ELEC_W)}× world electricity use · ${fmt(m.heat / HIROSHIMA_J, 0)} Hiroshima bombs each second`;
+  $('rKin').innerHTML = `${fmt(m.pd / 1e12, 1)} <small>TW</small>`;
+  $('rKin2').textContent = `≈ ${fmt(m.pd / WORLD_ELEC_W, 1)}× world electricity. Only ~${fmt(m.pd / m.heat * 100, 1)}% of the heat becomes wind.`;
+  $('rSurge').innerHTML = m.cat.surgeTxt;
+  $('rSurge2').textContent = `+${fmt(m.ib)} cm from low pressure alone`;
+}
+
+function syncControls() {
+  $('sst').value = state.sst; $('tout').value = state.tout; $('shear').value = state.shear;
+  $('sstOut').textContent = `${fmt(state.sst, 1)} °C`;
+  $('toutOut').textContent = minus(`${fmt(state.tout)} °C`);
+  $('shearOut').textContent = `${fmt(state.shear)} kt`;
+}
+function update() {
+  M = model(state.sst, state.tout, state.shear);
+  syncControls(); setTargets(); renderReadout(); renderParts(); renderDetail();
+}
+for (const id of ['sst', 'tout', 'shear']) $(id).addEventListener('input', (e) => { state[id] = parseFloat(e.target.value); update(); });
+document.querySelector('.presets').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-p]'); if (!b) return;
+  const [a, t, s] = b.dataset.p.split(',').map(Number);
+  Object.assign(state, { sst: a, tout: t, shear: s }); update();
+});
+
+function setView(v) {
+  state.view = v;
+  document.querySelectorAll('#viewSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+  setTargets();
+}
+document.querySelectorAll('#viewSeg button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+document.querySelectorAll('#imgSeg button').forEach(b => b.addEventListener('click', () => {
+  state.img = b.dataset.img;
+  document.querySelectorAll('#imgSeg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  $('irkey').hidden = state.img !== 'ir';
+  setTargets();
+}));
+$('flowBtn').addEventListener('click', (e) => {
+  state.flow = !state.flow; e.currentTarget.setAttribute('aria-pressed', String(state.flow)); setTargets();
+});
+
+/* =====================================================================
+   Resize + loop
+   ===================================================================== */
+let W = 1, H = 1;
+function resize() {
+  const r = stage.getBoundingClientRect();
+  W = Math.max(1, r.width); H = Math.max(1, r.height);
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H;
+  camera.fov = W < 600 ? 50 : 38;
+  camera.updateProjectionMatrix();
+  U.uScale.value = renderer.getPixelRatio() * H / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+
+const clock = new THREE.Clock();
+let t = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.1);
+  t += dt * (reduceMotion ? 0.25 : 1);
+  U.uTime.value = t;
+  applyUniforms(dt);
+  spinGroup.rotation.y = t * 0.25;
+  controls.update();
+  renderer.render(scene, camera);
+  placeLabels(W, H);
+  requestAnimationFrame(frame);
+}
+
+update();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
