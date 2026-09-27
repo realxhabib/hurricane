@@ -1628,8 +1628,11 @@ function placeLabels(w, h) {
   const set = LABEL_SETS[state.focus] || [];
   const occl = [...document.querySelectorAll('.lesson, .console, .topbar > *, .detailview:not([hidden])')].map(el => el.getBoundingClientRect());
   const sr = stage.getBoundingClientRect();
+  // callouts only make sense once the storm is big enough on screen to point at its parts
+  const c0 = tmpV.set(0, 0, 0).project(camera).clone(), c1 = tmpV.set(cur.bandR, 0, 0).project(camera);
+  const tooSmall = Math.hypot((c1.x - c0.x) * w / 2, (c1.y - c0.y) * h / 2) < 170 && !['wind', 'coriolis', 'engine'].includes(state.focus);
   for (const L of LABELS) {
-    if (!set.includes(L.key) || (L.key.startsWith('leg') && cur.engine < 0.5)) { L.el.style.opacity = '0'; L.el.querySelector('.tx').style.pointerEvents = 'none'; continue; }
+    if (tooSmall || !set.includes(L.key) || (L.key.startsWith('leg') && cur.engine < 0.5)) { L.el.style.opacity = '0'; L.el.querySelector('.tx').style.pointerEvents = 'none'; continue; }
     const p = anchor(L.key).project(camera);
     const x = (p.x * 0.5 + 0.5) * w, y = (-p.y * 0.5 + 0.5) * h;
     const ax = x + sr.left, ay = y + sr.top;
@@ -2032,7 +2035,7 @@ function renderReadout() {
   $('catChip').style.setProperty('--cc', m.cat.color);
   ktEl.style.setProperty('--thumb', m.cat.color);
   $('catName').textContent = catLabel(m.cat.key);
-  $('catSub').textContent = m.fuelOK ? CAT_SUB[m.cat.key] : 'Sea too cool to sustain a hurricane';
+  $('catSub').textContent = state.sst < 25.9 ? 'Sea too cool to sustain a hurricane' : CAT_SUB[m.cat.key];
   $('rWind').textContent = fmt(m.kt);
   $('rWind2').textContent = `${fmt(m.kt * 1.15078)} mph · ${fmt(m.kt * 1.852)} km/h`;
   document.querySelectorAll('#ticks button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cat === m.cat.key)));
