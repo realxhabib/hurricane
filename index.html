@@ -182,6 +182,7 @@ details.notes a { color: var(--cold); }
 .co.on .pt { background: var(--c, var(--heat)); box-shadow: 0 0 0 3px rgba(0,0,0,0.35), 0 0 14px var(--c, var(--heat)); }
 .co.on .tx { color: var(--c, var(--heat)); border-bottom-color: var(--c, var(--heat)); }
 .co.static .tx { cursor: default; }
+.co.flip .tx { left: auto; right: -1px; text-align: right; }
 
 .probe { position: absolute; left: 0; top: 0; pointer-events: none; padding: 10px 12px; min-width: 196px; border-radius: 10px; background: var(--glass-2); border: 1px solid var(--hair-2); font: 400 11.5px/1.55 var(--mono); transition: opacity .15s; }
 .probe b { display: block; font: 500 10px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
@@ -646,7 +647,7 @@ controls.maxPolarAngle = Math.PI * 0.487;
 controls.enablePan = false;
 controls.rotateSpeed = 0.6;
 
-const KM = 10, VX = 8;
+const KM = 10, VX = 5;   // heights exaggerated 5× so the structure stays readable without turning into a tower
 const zUnits = (km) => km * VX / KM;
 const SUN = new THREE.Vector3(0.86, 0.3, 0.18).normalize();
 
@@ -754,13 +755,14 @@ const STORM_GLSL = /* glsl */`
     float band = win * mix(0.6, arms, uOrg) * smoothstep(0.3, 0.8, y) * (1.0 - smoothstep(hb * 0.45, hb, y));
     // rain shafts under the eyewall and bands
     rain = (1.0 - smoothstep(0.05, 0.75, y)) * (exp(-dr * dr) * mix(0.1, 1.0, uOrg) + win * mix(0.5, arms, uOrg) * 0.7);
-    // canopy: the anvil of ice cloud spreading from the top of the eyewall
+    // central dense overcast and canopy: one broad dome, deep and solid near the core,
+    // thinning outward into the anvil of ice cloud at the top of the troposphere
     float yc = y - uOffCan;
-    float Rc = uBandR * mix(0.36, 0.92, uOrg);
+    float Rc = uBandR * mix(0.36, 0.95, uOrg);
     float rr = r / Rc;
-    float cb = uTop * mix(0.8, 0.64, clamp(rr, 0.0, 1.0));
-    float ct = uTop * (0.99 - 0.12 * rr * rr);
-    float can = smoothstep(cb, cb + 0.8, yc) * (1.0 - smoothstep(ct - 0.9, ct, yc)) * (1.0 - smoothstep(0.68, 1.05, rr));
+    float cb = uTop * mix(0.16, 0.74, smoothstep(0.12, 0.85, rr));
+    float ct = uTop * (1.0 - 0.28 * pow(clamp(rr, 0.0, 1.2), 1.6));
+    float can = smoothstep(cb, cb + 1.2, yc) * (1.0 - smoothstep(ct - 1.0, ct, yc)) * (1.0 - smoothstep(0.7, 1.05, rr));
     can *= max(smoothstep(rEye * 1.0, rEye * 1.35, r), uEyeFill);
     // shear weakens the upshear side
     float up = smoothstep(-0.8, 0.4, cos(th));
@@ -848,9 +850,10 @@ const cloudMat = new THREE.ShaderMaterial({
       }
       n = mix(n, max(n, 0.72), wall * 0.85);
       // the canopy is fibrous cirrus: streaked along the spiral instead of billowing
+      canF *= smoothstep(0.55, 0.85, p.y / uTop);   // only the high anvil is fibrous; the deep core billows
       if (canF > 0.05) {
-        float fib = texture(uNoise, vec3(cos(phi) * 0.16 + 0.2, sin(phi) * 0.16 + 0.7, lr * 2.6 + p.y * 0.03)).r;
-        n = mix(n, fib, canF * 0.7);
+        float fib = texture(uNoise, vec3(cos(phi) * 0.3 + 0.2, sin(phi) * 0.3 + 0.7, lr * 1.4 + p.y * 0.03)).r;
+        n = mix(n, fib, canF * 0.4);
       }
       rain *= smoothstep(0.3, 0.6, n);
       n = smoothstep(0.22, 0.82, n);
@@ -1422,7 +1425,7 @@ function setTargets() {
   tgt.explode = state.view === 'exploded' ? 1 : 0;
   tgt.ir = state.img === 'ir' ? 1 : 0;
   tgt.flow = state.flow || FLOW_LESSONS.includes(f) ? 1 : 0;
-  tgt.windOn = f === 'wind' ? 1 : f === 'category' ? 0.55 : 0;
+  tgt.windOn = f === 'wind' ? 1 : 0;
   tgt.surgeOn = f === 'surge' ? 1 : 0;
   tgt.rings = ['wind', 'surge', 'ocean'].includes(f) ? 0.6 : 0;
   tgt.engine = f === 'engine' ? 1 : 0;
@@ -1644,6 +1647,7 @@ function placeLabels(w, h) {
     L.el.style.opacity = vis ? '1' : '0';
     L.el.querySelector('.tx').style.pointerEvents = vis && L.el.querySelector('button') ? 'auto' : 'none';
     L.el.classList.toggle('on', L.key === state.focus);
+    L.el.classList.toggle('flip', x > w - 190);
   }
 }
 
