@@ -99,6 +99,40 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .presets button:hover { color: var(--ink); border-color: var(--muted); }
 
 .readout { padding: 16px 18px; display: grid; gap: 12px; align-content: start; }
+.scale { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.scale h2 { flex: none; }
+.segs { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; min-width: 0; }
+.segs button { --cc: #fff; display: grid; gap: 4px; justify-items: center; padding: 7px 2px 6px; border: 0; border-top: 3px solid var(--cc); border-radius: 3px 3px 7px 7px; background: rgba(255,255,255,0.035); cursor: pointer; color: var(--muted); transition: background .2s, color .2s, transform .2s, box-shadow .2s; }
+.segs button b { font: 800 17px/1 var(--display); letter-spacing: .04em; }
+.segs button small { font: 400 10px/1 var(--mono); color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.segs button:hover { color: var(--ink); background: rgba(255,255,255,0.08); }
+.segs button[aria-pressed="true"] { background: color-mix(in srgb, var(--cc) 24%, transparent); color: var(--ink); transform: translateY(-2px); box-shadow: 0 8px 20px -10px var(--cc); }
+.segs button[aria-pressed="true"] small { color: var(--ink); }
+.grow { flex: none; border: 1px solid var(--line-strong); background: rgba(255,255,255,0.05); border-radius: 999px; padding: 9px 14px; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.grow:hover, .grow[aria-pressed="true"] { border-color: var(--heat); color: var(--heat); }
+.cat.bump { animation: bump .5s ease; }
+@keyframes bump { 40% { transform: scale(1.14); } }
+.cchart { margin: 16px 0 0; }
+.cchart svg { width: 100%; height: auto; display: block; overflow: visible; --bar: #34465a; }
+.cchart .bar { cursor: pointer; }
+.cchart .bar:hover path { filter: brightness(1.35); }
+.cchart .val { font: 500 11px/1 var(--mono); fill: var(--ink); }
+.cchart .xl { font: 500 10.5px/1 var(--mono); fill: var(--faint); }
+.cchart .xl.on { fill: var(--ink); }
+.cchart .axis { stroke: var(--line-strong); stroke-width: 1; }
+.cchart figcaption, .tcap { font-size: 11.5px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+.example { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.04); font-size: 12.5px; color: #c3cfdb; }
+.example b { color: var(--ink); font-weight: 600; }
+.ctable-wrap { overflow-x: auto; margin-top: 16px; }
+.ctable { width: 100%; border-collapse: collapse; font: 400 11.5px/1.3 var(--mono); font-variant-numeric: tabular-nums; }
+.ctable th { font: 500 9px/1.25 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint); text-align: right; padding: 0 0 6px 8px; vertical-align: bottom; }
+.ctable th:first-child, .ctable td:first-child { text-align: left; padding-left: 0; }
+.ctable td { text-align: right; padding: 6px 0 6px 8px; border-top: 1px solid var(--line); color: #b3c0cd; white-space: nowrap; }
+.ctable tr[data-cat] { cursor: pointer; }
+.ctable tr[data-cat]:hover td { color: var(--ink); }
+.ctable tr.on td { color: var(--ink); background: rgba(255,255,255,0.05); }
+.ctable i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--cc); margin-right: 6px; }
+@media (prefers-reduced-motion: reduce) { .cat.bump { animation: none; } .segs button { transition: none; } }
 .verdict { display: flex; align-items: center; gap: 14px; }
 .cat { --cc: #ffc140; display: inline-grid; place-items: center; min-width: 58px; height: 58px; padding: 0 10px; border-radius: 10px; background: var(--cc); color: #0b0f14; font: 800 32px/1 var(--display); box-shadow: 0 0 30px color-mix(in srgb, var(--cc) 45%, transparent); transition: background 0.3s, box-shadow 0.3s; }
 .verdict .what { display: grid; gap: 3px; min-width: 0; }
@@ -154,6 +188,8 @@ details.notes a { color: var(--cold); }
   .hint { left: 16px; bottom: 12px; }
   .irkey { right: 16px; bottom: 34px; width: min(260px, calc(100% - 32px)); }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scale { flex-wrap: wrap; }
+  .segs { order: 3; flex-basis: 100%; }
 }
 </style>
 </head>
@@ -195,6 +231,11 @@ details.notes a { color: var(--cold); }
   </main>
 
   <section class="deck glass" id="deck" aria-label="Storm power">
+    <div class="scale">
+      <h2>Strength <span style="color:var(--faint)">· wind kt</span></h2>
+      <div class="segs" id="segs" role="group" aria-label="Saffir–Simpson category"></div>
+      <button type="button" class="grow" id="growBtn" aria-pressed="false">▶ Grow it</button>
+    </div>
     <div class="controls">
       <h2>Set the conditions</h2>
       <div class="ctl">
@@ -327,7 +368,7 @@ function model(sst, tout, shear) {
   return {
     sst, tout, shear, eff, pi, piKt: pi * 1.94384, v, kt, p, rmKm, cat, pd, heat, rainCm, topKm, ib, surgeMid,
     shearFrac: clamp(shear / 40, 0, 1),
-    eyeFill: 1 - clamp((kt - 62) / 30, 0, 1),
+    eyeFill: 1 - clamp((kt - 58) / 25, 0, 1),
     fuelOK: sst >= 26.5,
   };
 }
@@ -353,6 +394,9 @@ const PARTS = [
       ['Carnot efficiency', `${fmt(m.eff * 100, 1)}%`, true],
       ['Potential intensity', `${fmt(m.piKt)} kt`, true],
     ] },
+  { id: 10, key: 'category', group: 'Strength', name: 'Category', get color() { return M ? M.cat.color : '#ffc140'; },
+    tag: (m) => m.cat.key.length > 1 ? m.cat.key : `Cat ${m.cat.key}`,
+    lede: '', body: [], specs: () => [] },
   { id: 0, key: 'ocean', group: 'Fuel and intake', name: 'Warm ocean', color: '#3d86c6',
     tag: (m) => `${fmt(m.sst, 1)}°`,
     lede: 'The fuel tank. Hurricanes need sea water at 26.5 °C or warmer, through a layer about 50 m deep.',
@@ -467,6 +511,60 @@ const PARTS = [
 const PART = Object.fromEntries(PARTS.map(p => [p.key, p]));
 
 /* =====================================================================
+   Categories: what each step on the Saffir–Simpson scale looks like
+   ===================================================================== */
+const CAT_INFO = {
+  TD: { range: '< 34 kt · < 39 mph', lede: 'A loose swirl of thunderstorms around a low. No eye, no eyewall, just the start of a spin.',
+    body: 'The engine is barely running. Thunderstorms flare up and collapse around a broad centre, and the bands are ragged. Heavy rain is the main danger, and flooding from depressions can still be deadly.',
+    example: 'Most tropical cyclones spend their first day or two at this stage.' },
+  TS: { range: '34–63 kt · 39–73 mph', lede: 'Organised enough to get a name. Storms wrap around the centre under a dense cloud cover, but there is no true eye yet.',
+    body: 'Bands curve into spirals and a central dense overcast forms. Winds snap branches and bring down some power lines. Rain can be catastrophic, because slow tropical storms have caused some of the worst floods on record.',
+    example: '<b>Allison (2001)</b> caused about $9 billion of flooding in Houston without ever becoming a hurricane.' },
+  '1': { range: '64–82 kt · 74–95 mph', lede: 'A hurricane. The eyewall closes into a ring and an eye starts to open.',
+    body: 'Very dangerous winds damage roofs, siding and gutters, snap large branches and topple shallow-rooted trees. Damage to power lines can leave homes without power for several days.',
+    example: '<b>Beryl (2024)</b> made landfall in Texas as a Category 1 and cut power to about 2.7 million customers.' },
+  '2': { range: '83–95 kt · 96–110 mph', lede: 'The eye clears and the eyewall towers grow taller.',
+    body: 'Extremely dangerous winds cause extensive damage. Well-built homes can lose large parts of their roofs and siding, and many trees are uprooted and block roads. Expect near-total power loss lasting days to weeks.',
+    example: '<b>Ike (2008)</b> was only a Category 2 at landfall, but it was so large that it pushed a 4–6 m surge. Category measures wind, not size or surge.' },
+  '3': { range: '96–112 kt · 111–129 mph', lede: 'A major hurricane. A sharp eye, a thick eyewall and tightly wound bands.',
+    body: 'Devastating damage. Well-built homes can lose roof decking and gable ends, and many trees are snapped or uprooted. Electricity and water can be out for days to weeks. Category 3 and above count as major hurricanes.',
+    example: '<b>Katrina (2005)</b> made its Louisiana landfall as a Category 3.' },
+  '4': { range: '113–136 kt · 130–156 mph', lede: 'A small, clear eye inside a stadium of cloud that reaches the top of the troposphere.',
+    body: 'Catastrophic damage. Well-built homes can lose most of the roof and some outside walls. Most trees and power poles come down and cut neighbourhoods off. Power can be out for weeks to months, and much of the area may be uninhabitable for weeks or months.',
+    example: '<b>Ian (2022)</b> made landfall in southwest Florida as a Category 4.' },
+  '5': { range: '≥ 137 kt · ≥ 157 mph', lede: 'The engine near its limit. A tiny, sharp eye, the coldest cloud tops and near-perfect symmetry.',
+    body: 'Catastrophic damage. A high percentage of framed homes are destroyed, with total roof failure and wall collapse. Fallen trees and power poles isolate whole areas. Power can be out for months, and most of the area uninhabitable for weeks or months.',
+    example: '<b>Michael (2018)</b> hit the Florida Panhandle as a Category 5.' },
+};
+const CAT_RANGE_SHORT = { TD: '<34', TS: '34–63', '1': '64–82', '2': '83–95', '3': '96–112', '4': '113–136', '5': '137+' };
+const CAT_MID = { TD: 25, TS: 50, '1': 73, '2': 89, '3': 104, '4': 124, '5': 150 };
+const catLabel = (k) => k === 'TD' ? 'Tropical depression' : k === 'TS' ? 'Tropical storm' : `Category ${k}`;
+
+// Find ocean conditions that produce a given wind speed (kt) in this model
+// Stronger storms get warmer water and calmer upper winds, as in the real world
+function conditionsFor(kt) {
+  const sst = 26 + 5 * clamp((kt - 25) / 125, 0, 1);
+  if (model(sst, -75, 0).kt < kt) {
+    let lo = -85, hi = -75;   // colder outflow = stronger
+    for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (model(sst, mid, 0).kt < kt) hi = mid; else lo = mid; }
+    return { sst, tout: (lo + hi) / 2, shear: 0 };
+  }
+  let lo = 0, hi = 40;        // more shear = weaker
+  for (let i = 0; i < 28; i++) { const mid = (lo + hi) / 2; if (model(sst, -75, mid).kt > kt) lo = mid; else hi = mid; }
+  return { sst, tout: -75, shear: (lo + hi) / 2 };
+}
+function radiusOf(m, kt) {
+  if (m.kt < kt) return null;
+  const ms = kt / 1.94384;
+  for (let r = m.rmKm; r < 1500; r += 1) if (hollandV(r * 1000, m.v, m.rmKm * 1000) < ms) return r;
+  return null;
+}
+const CAT_ROWS = CATS.map(c => {
+  const m = model(...Object.values(conditionsFor(CAT_MID[c.key])));
+  return { c, m, r64: radiusOf(m, 64) };
+});
+
+/* =====================================================================
    State
    ===================================================================== */
 const state = { sst: 29.5, tout: -75, shear: 12, view: 'cutaway', img: 'visible', flow: true, focus: 'engine', opening: 140 };
@@ -512,7 +610,7 @@ const U = {
   uTime: { value: 0 }, uRm: { value: 3.5 }, uTop: { value: 12.8 }, uTilt: { value: 0 }, uShear: { value: 0 },
   uEyeFill: { value: 0 }, uCutC: { value: -Math.PI / 2 }, uCutW: { value: 1.2 }, uIR: { value: 0 },
   uSST: { value: 29.5 }, uTout: { value: -75 }, uSpin: { value: 0.5 }, uBandR: { value: 42 }, uVm: { value: 60 },
-  uOffCan: { value: 0 }, uOffBand: { value: 0 }, uOceanY: { value: 0 }, uExplode: { value: 0 },
+  uOffCan: { value: 0 }, uOffBand: { value: 0 }, uOceanY: { value: 0 }, uExplode: { value: 0 }, uOrg: { value: 0.8 },
   uDimC: { value: [1, 1, 1, 1] }, uHiC: { value: [0, 0, 0, 0] },
   uSun: { value: SUN }, uNoise: { value: null },
   uSurge: { value: 0 }, uWindOn: { value: 0 }, uSurgeOn: { value: 0 },
@@ -572,7 +670,7 @@ function makeNoiseTexture(N = 64) {
 const STORM_GLSL = /* glsl */`
   precision highp sampler3D;
   uniform float uTime, uRm, uTop, uTilt, uShear, uEyeFill, uCutC, uCutW, uIR, uSST, uTout, uSpin, uBandR, uVm;
-  uniform float uOffCan, uOffBand, uOceanY, uExplode;
+  uniform float uOffCan, uOffBand, uOceanY, uExplode, uOrg;
   uniform float uDimC[4]; uniform float uHiC[4];
   uniform vec3 uSun;
   uniform sampler3D uNoise;
@@ -604,6 +702,7 @@ const STORM_GLSL = /* glsl */`
     float wEW = uRm * 0.30 + 0.3;
     float dr = (r - rEW) / wEW;
     float ew = exp(-dr * dr) * smoothstep(0.0, 0.05, yN) * (1.0 - smoothstep(0.84, 0.97, yN));
+    ew *= mix(0.15, 1.0, smoothstep(0.12, 0.5, uOrg));   // weak storms have no closed eyewall
     // eye: shallow low cloud, filled completely in weak storms
     float eyeIn = 1.0 - smoothstep(uRm * 0.75, uRm * 1.05, r);
     float eye = eyeIn * max(0.5 * (1.0 - smoothstep(0.25, 1.1, y)), uEyeFill * (1.0 - smoothstep(0.75, 0.95, yN)));
@@ -612,14 +711,14 @@ const STORM_GLSL = /* glsl */`
     float rIn = uRm * 2.0, rOut = uBandR * 1.02;
     float win = smoothstep(rIn, rIn + 3.0, rb) * (1.0 - smoothstep(rOut - 7.0, rOut, rb));
     float arm = cos(3.0 * (th + 2.4 * log(rb / uBandR) - uTime * uSpin * 0.06));
-    float band = pow(max(arm, 0.0), 2.2) * win;
+    float band = pow(max(arm, 0.0), mix(1.2, 2.6, uOrg)) * win * mix(0.7, 1.0, uOrg);   // loose, ragged bands when weak
     float kb = clamp((rb - rIn) / (rOut - rIn), 0.0, 1.0);
     float hb = mix(7.4, 3.0, kb) * uTop / 12.8;
     band *= smoothstep(0.05, 0.5, y) * (1.0 - smoothstep(hb * 0.5, hb, y));
     band += 0.14 * win * smoothstep(0.1, 0.4, y) * (1.0 - smoothstep(0.8, 2.0, y));
     // outflow canopy: a thin anvil sheet drooping at its edge
     float yc = y - uOffCan;
-    float rr = r / (uBandR * 1.1);
+    float rr = r / (uBandR * 1.1 * mix(0.55, 1.0, uOrg));   // the canopy spreads as the storm strengthens
     float cb = uTop * 0.80 - 1.4 * rr * rr;
     float ct = uTop * 0.98 - 2.0 * rr * rr;
     float can = smoothstep(cb, cb + 0.9, yc) * (1.0 - smoothstep(ct - 0.7, ct, yc));
@@ -1150,7 +1249,7 @@ function buildFlow(rm, top, bandR) {
 
 /* ---------- heat-engine loop, drawn on the slice face ---------- */
 const loopMat = new THREE.ShaderMaterial({
-  uniforms: U,
+  uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: /* glsl */`
     uniform float uTilt;
     varying float vS; varying vec3 vL; varying vec3 vN; varying vec3 vW;
@@ -1239,12 +1338,13 @@ function setTargets() {
   tgt.tilt = m.shearFrac * 0.75;
   tgt.shear = m.shearFrac;
   tgt.eyeFill = m.eyeFill;
+  tgt.org = clamp((m.kt - 28) / 105, 0, 1);
   tgt.sst = m.sst; tgt.tout = m.tout;
   tgt.cutW = state.view === 'cutaway' ? THREE.MathUtils.degToRad(state.opening) / 2 : 0;
   tgt.explode = state.view === 'exploded' ? 1 : 0;
   tgt.ir = state.img === 'ir' ? 1 : 0;
   tgt.flow = state.flow ? 1 : 0;
-  tgt.windOn = f === 'wind' ? 1 : 0;
+  tgt.windOn = f === 'wind' || f === 'category' ? 1 : 0;
   tgt.surgeOn = f === 'surge' ? 1 : 0;
   tgt.engine = f === 'engine' ? 1 : 0;
   tgt.spinVis = f === 'coriolis' ? 1 : 0;
@@ -1252,7 +1352,7 @@ function setTargets() {
   tgt.surge = m.surgeMid * (f === 'surge' ? 0.9 : 0.1) + m.ib * 0.004;
   // clouds: [eyewall, rainbands, canopy, eye]
   const D = {
-    engine: [0.95, 0.95, 0.9, 0.95], inflow: [0.3, 0.25, 0.2, 0.3], eyewall: [1, 0.15, 0.12, 0.3],
+    engine: [0.95, 0.95, 0.9, 0.95], category: [0.95, 0.9, 0.55, 0.95], inflow: [0.3, 0.25, 0.2, 0.3], eyewall: [1, 0.15, 0.12, 0.3],
     eye: [1, 1, 1, 1], rainbands: [0.15, 1, 0.1, 0.15], canopy: [1, 1, 1, 1], ocean: [0.18, 0.18, 0.12, 0.18],
     wind: [0.2, 0.2, 0.1, 0.2], surge: [0.18, 0.18, 0.1, 0.18], coriolis: [0.45, 0.45, 0.3, 0.45],
   }[f] || [1, 1, 1, 1];
@@ -1261,7 +1361,7 @@ function setTargets() {
   const S = {
     inflow: [1, 0.12, 0.12, 0.12], eyewall: [0.15, 1, 0.15, 0.15], canopy: [0.15, 0.15, 1, 0.15], eye: [0.12, 0.12, 0.12, 1],
     ocean: [0.4, 0.2, 0.2, 0.2], wind: [0.4, 0.2, 0.2, 0.2], surge: [0.3, 0.2, 0.2, 0.2], rainbands: [0.3, 0.3, 0.3, 0.3],
-    engine: [0.4, 0.4, 0.4, 0.4],
+    engine: [0.4, 0.4, 0.4, 0.4], category: [0.35, 0.35, 0.35, 0.35],
   }[f] || [1, 1, 1, 1];
   for (let i = 0; i < 4; i++) { tgt['d' + i] = D[i]; tgt['h' + i] = Hc[i]; tgt['s' + i] = S[i]; }
 }
@@ -1277,6 +1377,7 @@ function applyUniforms(dt) {
   const camAz = Math.atan2(-(camera.position.z - controls.target.z), camera.position.x - controls.target.x);
   cur.cutC = lerpAngle(cur.cutC, camAz, 1 - Math.exp(-dt * 2.5));
   U.uRm.value = cur.rm; U.uTop.value = cur.top; U.uVm.value = cur.vm; U.uSpin.value = cur.spin;
+  U.uOrg.value = cur.org;
   U.uTilt.value = cur.tilt; U.uShear.value = cur.shear; U.uEyeFill.value = cur.eyeFill;
   U.uSST.value = cur.sst; U.uTout.value = cur.tout; U.uIR.value = cur.ir;
   U.uCutW.value = cur.cutW; U.uCutC.value = cur.cutC;
@@ -1286,7 +1387,7 @@ function applyUniforms(dt) {
   for (let i = 0; i < 4; i++) { U.uDimC.value[i] = cur['d' + i]; U.uHiC.value[i] = cur['h' + i]; }
   U.uSeg.value.set(cur.s0, cur.s1, cur.s2, cur.s3);
   flowGroup.visible = cur.flow > 0.01;
-  loopGroup.visible = cur.engine > 0.01;
+  loopGroup.visible = cur.engine > 0.03;
   loopGroup.rotation.y = Math.PI + (cur.cutC - Math.max(cur.cutW, 0.35) + 0.06);
   spinMat.opacity = 0.85 * cur.spinVis; spinGroup.visible = cur.spinVis > 0.01; spinGroup.position.y = U.uOceanY.value;
   motionMat.opacity = 0.9 * cur.motionVis; motion.visible = cur.motionVis > 0.01; motion.position.y = U.uOceanY.value + 0.9;
@@ -1300,6 +1401,7 @@ function applyUniforms(dt) {
    ===================================================================== */
 const VIEWS = {
   engine: { r: 132, phi: 1.18, ty: 3 },
+  category: { r: 130, phi: 0.9, ty: 2 },
   ocean: { r: 150, phi: 1.1, ty: 0 },
   inflow: { r: 96, phi: 1.3, ty: 1.5 },
   eyewall: { r: 62, phi: 1.2, ty: 6 },
@@ -1332,7 +1434,7 @@ function flyTo(key) {
   controls.maxPolarAngle = inside ? Math.PI * 0.97 : Math.PI * 0.485;
   flight = { from, toPos, toTarget, t: 0, dur: inside ? 2.6 : 1.7 };
 }
-controls.addEventListener('start', () => { flight = null; });
+controls.addEventListener('start', () => { flight = null; controls.autoRotate = false; });
 function updateFlight(dt) {
   if (!flight) return;
   flight.t += dt / flight.dur;
@@ -1398,12 +1500,16 @@ function anchor(key) {
   }
   return tmpV.set(0, 0, 0);
 }
+const mastEl = document.querySelector('.masthead');
 function placeLabels(w, h) {
+  const sr = stage.getBoundingClientRect(), mr = mastEl.getBoundingClientRect();
+  const mx0 = mr.left - sr.left - 60, mx1 = mr.right - sr.left + 60, my1 = mr.bottom - sr.top + 14;
   for (const L of LABELS) {
     if (!L.when()) { L.el.style.opacity = '0'; L.el.style.pointerEvents = 'none'; continue; }
     const p = anchor(L.key).project(camera);
     const x = (p.x * 0.5 + 0.5) * w, y = (-p.y * 0.5 + 0.5) * h;
-    const vis = p.z < 1 && x > -40 && x < w + 40 && y > 0 && y < h;
+    const underTitle = x > mx0 && x < mx1 && y < my1;
+    const vis = p.z < 1 && x > -40 && x < w + 40 && y > 0 && y < h && !underTitle;
     L.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`;
     L.el.style.opacity = vis ? '1' : '0';
     L.el.style.pointerEvents = vis && L.el.tagName === 'BUTTON' ? 'auto' : 'none';
@@ -1479,11 +1585,50 @@ const FLY_HINT = {
   engine: 'Follow the glowing loop on the slice face.',
   coriolis: 'Looking straight down from space.',
   wind: 'Hover the sea to probe wind at any point.',
+  category: 'The sea is coloured by wind strength. Click a category, or press Grow it to watch a depression become a Category 5.',
 };
+function powerChart() {
+  const W = 324, top = 20, base = 122, n = CAT_ROWS.length, gap = 6, bw = (W - gap * (n - 1)) / n;
+  const ref = CAT_ROWS[2].m.kt;
+  const vals = CAT_ROWS.map(r => Math.pow(r.m.kt / ref, 3));
+  const max = Math.max(...vals);
+  const f = (v) => fmt(v, v < 1 ? 2 : 1);
+  let g = '';
+  CAT_ROWS.forEach((r, i) => {
+    const v = vals[i], h = Math.max(2, (base - top) * v / max), x = i * (bw + gap), y = base - h;
+    const on = r.c.key === M.cat.key, rr = Math.min(4, h, bw / 2);
+    const d = `M${x},${base}V${y + rr}Q${x},${y} ${x + rr},${y}H${x + bw - rr}Q${x + bw},${y} ${x + bw},${y + rr}V${base}Z`;
+    g += `<g class="bar" data-cat="${r.c.key}"><title>${catLabel(r.c.key)}: ${f(v)}× the wind power of a Category 1</title>`
+      + `<rect x="${x}" y="${top - 16}" width="${bw}" height="${base - top + 34}" fill="transparent"/>`
+      + `<path d="${d}" fill="${on ? r.c.color : 'var(--bar)'}"/>`
+      + (on ? `<text x="${x + bw / 2}" y="${y - 6}" text-anchor="middle" class="val">${f(v)}×</text>` : '')
+      + `<text x="${x + bw / 2}" y="${base + 15}" text-anchor="middle" class="xl${on ? ' on' : ''}">${r.c.key}</text></g>`;
+  });
+  return `<figure class="cchart"><svg viewBox="0 0 ${W} 142" role="img" aria-label="Wind power by category, relative to Category 1">${g}<line x1="0" x2="${W}" y1="${base}" y2="${base}" class="axis"/></svg>`
+    + `<figcaption>Wind power at each category’s typical wind speed, relative to Category 1. Power grows with the cube of wind speed, so each step up hits much harder than the last.</figcaption></figure>`;
+}
+function categoryDetail() {
+  const k = M.cat.key, info = CAT_INFO[k];
+  const ref = CAT_ROWS[2].m.kt;
+  const specs = [
+    ['Sustained wind', info.range],
+    ['This storm', `${fmt(M.kt)} kt · ${fmt(M.p)} hPa`, true],
+    ['Wind power vs Category 1', `${fmt(Math.pow(M.kt / ref, 3), M.kt < ref ? 2 : 1)}×`, true],
+    ['Historical surge range', M.cat.surgeTxt],
+  ].map(([a, b, live]) => `<div><dt>${a}</dt><dd class="${live ? 'live' : ''}">${b}</dd></div>`).join('');
+  const rows = CAT_ROWS.map(r => `<tr data-cat="${r.c.key}" class="${r.c.key === k ? 'on' : ''}"><td><i style="--cc:${r.c.color}"></i>${r.c.key}</td><td>${fmt(r.m.kt)}</td><td>${fmt(r.m.p)}</td><td>${r.m.eyeFill > 0.6 ? '—' : fmt(r.m.rmKm * 1.4)}</td><td>${r.r64 ? fmt(r.r64) : '—'}</td><td>${fmt(r.m.topKm, 1)}</td></tr>`).join('');
+  return `<h2>Strength · Saffir–Simpson scale</h2><h3>${catLabel(k)}</h3><p class="lede">${info.lede}</p><p>${info.body}</p>`
+    + `<dl class="specs">${specs}</dl><p class="example">${info.example}</p>${powerChart()}`
+    + `<div class="ctable-wrap"><table class="ctable"><thead><tr><th>Cat</th><th>Wind kt</th><th>hPa</th><th>Eye km</th><th>64-kt winds reach km</th><th>Tops km</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    + `<p class="tcap">A typical storm at the middle of each category in this model. Stronger storms have lower pressure, a smaller eye and taller cloud tops. Click a row to see it.</p>`
+    + `<p class="flyhint">${FLY_HINT.category}</p>`;
+}
+detailEl.addEventListener('click', (e) => { const el = e.target.closest('[data-cat]'); if (el) setCategory(el.dataset.cat); });
 function renderDetail() {
   const p = PART[state.focus];
   if (!p) { detailEl.innerHTML = ''; return; }
   detailEl.style.setProperty('--c', p.color);
+  if (p.key === 'category') { detailEl.innerHTML = categoryDetail(); return; }
   const specs = p.specs(M).map(([k, v, live]) => `<div><dt>${k}</dt><dd class="${live ? 'live' : ''}">${v}</dd></div>`).join('');
   detailEl.innerHTML = `<h2>${p.group}</h2><h3>${p.name}</h3><p class="lede">${p.lede}</p>${p.body.map(t => `<p>${t}</p>`).join('')}<dl class="specs">${specs}</dl>${FLY_HINT[p.key] ? `<p class="flyhint">${FLY_HINT[p.key]}</p>` : ''}`;
 }
@@ -1494,8 +1639,42 @@ function select(key) {
   setTargets(); renderParts(); renderDetail(); flyTo(key);
 }
 
+const segsEl = $('segs');
+segsEl.innerHTML = CATS.map(c => `<button type="button" id="seg-${c.key}" data-cat="${c.key}" aria-pressed="false" style="--cc:${c.color}" title="${catLabel(c.key)}"><b>${c.key}</b><small>${CAT_RANGE_SHORT[c.key]}</small></button>`).join('');
+segsEl.addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) setCategory(b.dataset.cat); });
+function setCategory(key) {
+  stopGrow();
+  Object.assign(state, conditionsFor(CAT_MID[key]));
+  const was = state.focus;
+  update();
+  if (was !== 'category') select('category');
+}
+let grow = null, lastCat = null;
+function startGrow() {
+  if (state.focus !== 'category') select('category');
+  grow = { t: 0, dur: 18, acc: 1 };
+  controls.autoRotate = !reduceMotion; controls.autoRotateSpeed = 0.7;
+  $('growBtn').setAttribute('aria-pressed', 'true'); $('growBtn').textContent = '■ Stop';
+}
+function stopGrow() {
+  if (!grow) return;
+  grow = null; controls.autoRotate = false;
+  $('growBtn').setAttribute('aria-pressed', 'false'); $('growBtn').textContent = '▶ Grow it';
+}
+$('growBtn').addEventListener('click', () => grow ? stopGrow() : startGrow());
+function stepGrow(dt) {
+  if (!grow) return;
+  grow.t += dt; grow.acc += dt;
+  const u = Math.min(1, grow.t / grow.dur);
+  const e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+  if (grow.acc > 0.08 || u >= 1) { grow.acc = 0; Object.assign(state, conditionsFor(20 + (152 - 20) * e)); update(); }
+  if (u >= 1) stopGrow();
+}
 function renderReadout() {
   const m = M;
+  document.querySelectorAll('#segs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cat === m.cat.key)));
+  if (lastCat && lastCat !== m.cat.key) { const chip = $('catChip'); chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump'); }
+  lastCat = m.cat.key;
   $('catChip').textContent = m.cat.key;
   $('catChip').style.setProperty('--cc', m.cat.color);
   $('catName').textContent = m.cat.name;
@@ -1522,11 +1701,11 @@ function update() {
   M = model(state.sst, state.tout, state.shear);
   syncControls(); setTargets(); renderReadout(); renderParts(); renderDetail();
 }
-for (const id of ['sst', 'tout', 'shear']) $(id).addEventListener('input', (e) => { state[id] = parseFloat(e.target.value); update(); });
+for (const id of ['sst', 'tout', 'shear']) $(id).addEventListener('input', (e) => { stopGrow(); state[id] = parseFloat(e.target.value); update(); });
 document.querySelector('.presets').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-p]'); if (!b) return;
   const [a, t, s] = b.dataset.p.split(',').map(Number);
-  Object.assign(state, { sst: a, tout: t, shear: s }); update();
+  stopGrow(); Object.assign(state, { sst: a, tout: t, shear: s }); update();
 });
 function setView(v, quiet) {
   state.view = v;
@@ -1609,6 +1788,7 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.1);
   t += dt * (reduceMotion ? 0.25 : 1);
   U.uTime.value = t;
+  stepGrow(dt);
   updateFlight(dt);
   controls.update();
   applyUniforms(dt);

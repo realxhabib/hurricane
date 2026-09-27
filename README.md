@@ -12,6 +12,7 @@ Open `index.html` in a browser. It needs an internet connection to load Three.js
 - **Probe the sea**: hover anywhere on the ocean to read the local wind, pressure and wind class.
 - **Visible / Infrared**: switch to a satellite-style infrared view coloured by cloud-top temperature.
 - **Airflow**: glowing streamlines show the secondary circulation. Air flows in along the sea, rises in the eyewall, flows out at the top and sinks in the eye.
+- **Compare categories**: a Saffir–Simpson strip (TD, TS, 1–5) reshapes the storm into each category and colours the sea by wind strength. **Grow it** animates a depression into a Category 5. The category page lists NHC-style damage, real example storms, a wind-power chart (power ∝ wind³) and a table comparing pressure, eye size, hurricane-wind reach and cloud tops.
 - **Set the conditions**: change sea surface temperature, outflow temperature and wind shear, and watch the category, wind, pressure, Carnot efficiency, heat released, wind power and surge change. The storm reshapes as you go: the eye clears, the tops rise and shear tilts it.
 
 It needs WebGL2. HD mode (the default) renders at up to 2× pixel density with 4× MSAA, 128³ GPU-generated cloud noise, temporally accumulated clouds and bloom. Fast mode trades that for frame rate on weaker machines. In both modes the cloud resolution adapts to keep the frame rate smooth.
