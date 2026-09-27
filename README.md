@@ -14,7 +14,7 @@ Open `index.html` in a browser. It needs an internet connection to load Three.js
 - **Airflow**: glowing streamlines show the secondary circulation. Air flows in along the sea, rises in the eyewall, flows out at the top and sinks in the eye.
 - **Set the conditions**: change sea surface temperature, outflow temperature and wind shear, and watch the category, wind, pressure, Carnot efficiency, heat released, wind power and surge change. The storm reshapes as you go: the eye clears, the tops rise and shear tilts it.
 
-It needs WebGL2. The cloud resolution adapts to keep the frame rate smooth.
+It needs WebGL2. HD mode (the default) renders at up to 2× pixel density with 4× MSAA, 128³ GPU-generated cloud noise, temporally accumulated clouds and bloom. Fast mode trades that for frame rate on weaker machines. In both modes the cloud resolution adapts to keep the frame rate smooth.
 
 ## The model
 

@@ -180,6 +180,7 @@ details.notes a { color: var(--cold); }
         </div>
         <div class="seg glass">
           <button type="button" id="flowBtn" aria-pressed="true">Airflow</button>
+          <button type="button" id="hdBtn" aria-pressed="true" title="High-definition rendering">HD</button>
           <button type="button" id="resetBtn" aria-pressed="false">Reset view</button>
         </div>
       </div>
@@ -481,8 +482,12 @@ const stage = $('stage');
 const canvas = $('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
-const DPR = Math.min(devicePixelRatio || 1, 1.75);
-renderer.setPixelRatio(DPR);
+const QUALITY = {
+  hd:   { dpr: Math.min(devicePixelRatio || 1, 2), scale: 0.75, min: 0.5, max: 1.0, steps: 110, samples: 4, hd: 1 },
+  fast: { dpr: 1, scale: 0.45, min: 0.3, max: 0.5, steps: 64, samples: 0, hd: 0 },
+};
+let Q = QUALITY.hd;
+renderer.setPixelRatio(Q.dpr);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(36, 1, 0.3, 1400);
@@ -562,7 +567,6 @@ function makeNoiseTexture(N = 64) {
   tex.needsUpdate = true;
   return tex;
 }
-U.uNoise.value = makeNoiseTexture();
 
 /* ---------- GLSL shared by clouds and ocean ---------- */
 const STORM_GLSL = /* glsl */`
@@ -652,15 +656,19 @@ const FS_VERT = /* glsl */`
 const cloudMat = new THREE.ShaderMaterial({
   uniforms: Object.assign({
     uDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
-    uCamPos: { value: new THREE.Vector3() }, uSteps: { value: 72 },
+    uCamPos: { value: new THREE.Vector3() }, uSteps: { value: 110 }, uFrame: { value: 0 }, uHD: { value: 1 },
   }, U),
+  glslVersion: THREE.GLSL3,
   vertexShader: FS_VERT,
   fragmentShader: STORM_GLSL + /* glsl */`
     uniform sampler2D uDepth;
     uniform mat4 uInvProj, uCamWorld;
     uniform vec3 uCamPos;
     uniform int uSteps;
+    uniform float uFrame, uHD;
     varying vec2 vUv;
+    layout(location = 0) out highp vec4 oCol;
+    layout(location = 1) out highp vec4 oDep;
     float noiseFlow(vec3 p, float r, float th, float om, float can) {
       float P = 18.0;
       float ph0 = fract(uTime / P), ph1 = fract(uTime / P + 0.5);
@@ -691,7 +699,7 @@ const cloudMat = new THREE.ShaderMaterial({
       vec4 v = uInvProj * vec4(ndc, 1.0, 1.0); v /= v.w;
       vec3 rd = normalize((uCamWorld * vec4(v.xyz, 0.0)).xyz);
       vec3 ro = uCamPos;
-      float dz = texture2D(uDepth, vUv).x;
+      float dz = texture(uDepth, vUv).x;
       float sceneT = 1e9;
       if (dz < 1.0) { vec4 vp = uInvProj * vec4(ndc, dz * 2.0 - 1.0, 1.0); vp /= vp.w; sceneT = length(vp.xyz); }
       float Rb = uBandR * 1.16 + uOffBand + abs(uTilt) * uTop + 1.0;
@@ -700,11 +708,11 @@ const cloudMat = new THREE.ShaderMaterial({
       vec2 tc = cyl(ro.xz, rd.xz, Rb);
       float t0 = max(max(ty.x, tc.x), 0.0);
       float t1 = min(min(ty.y, tc.y), sceneT);
-      if (t1 <= t0) { gl_FragColor = vec4(0.0); return; }
+      if (t1 <= t0) { oCol = vec4(0.0); oDep = vec4(0.0); return; }
       float dt = max((t1 - t0) / float(uSteps), 0.2);
-      float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+      float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))) + uFrame * 0.61803398);
       float t = t0 + dt * jit;
-      float T = 1.0;
+      float T = 1.0, dAcc = 0.0, wAcc = 0.0;
       vec3 acc = vec3(0.0);
       float cosA = dot(rd, uSun);
       float ph = mix(hg(cosA, 0.6), hg(cosA, -0.25), 0.55);
@@ -720,6 +728,12 @@ const cloudMat = new THREE.ShaderMaterial({
           float om = uSpin * clamp(uRm * 1.2 / max(r, 0.5), 0.04, 1.2) * (1.0 - can) - 0.03 * can;
           float n = noiseFlow(p, r, th, om, can);
           float d = clamp(s * 1.25 - (1.0 - n) * mix(1.15, 0.75, can), 0.0, 1.0);
+          if (uHD > 0.5 && d > 0.003 && d < 0.65) {
+            // high-frequency erosion gives crisp, wispy cloud edges
+            vec3 qd = vec3(p.x + uTime * 0.05, p.y * 1.3 - uTime * 0.15, p.z) * 0.6;
+            float hn = texture(uNoise, qd).r;
+            d = clamp(d - (1.0 - hn) * 0.3 * (1.0 - d), 0.0, 1.0);
+          }
           if (d > 0.003) {
             float od = shadowOD(p, 1.3, 5);
             float Tl = exp(-od * 0.55);
@@ -733,14 +747,16 @@ const cloudMat = new THREE.ShaderMaterial({
             float hi = (c.x * uHiC[0] * 1.5 + c.y * uHiC[1] * 1.25 + c.z * uHiC[2] * 0.75 + c.w * uHiC[3] * 0.9) / s;
             vec3 tint = (c.x * 1.5 * vec3(1.0, 0.54, 0.24) + c.y * 1.25 * vec3(0.62, 0.76, 0.85) + c.z * 0.75 * vec3(0.73, 0.78, 1.0) + c.w * 0.9 * vec3(0.95, 0.83, 0.61)) / s;
             col = mix(col, tint * (0.35 + 0.9 * Tl * powder), hi * 0.55);
-            float a = 1.0 - exp(-d * 1.7 * dt);
+            float a = 1.0 - exp(-d * 2.5 * dt);
             acc += T * a * col;
+            dAcc += T * a * t; wAcc += T * a;
             T *= 1.0 - a;
           }
         }
         t += dt;
       }
-      gl_FragColor = vec4(acc, 1.0 - T);
+      oCol = vec4(acc, 1.0 - T);
+      oDep = vec4(wAcc > 1e-4 ? dAcc / wAcc : 0.0, 0.0, 0.0, 1.0);
     }
   `,
   depthTest: false, depthWrite: false, blending: THREE.NoBlending,
@@ -758,10 +774,7 @@ const compMat = new THREE.ShaderMaterial({
       vec4 c = texture2D(uClouds, vUv);
       vec3 cc = c.a > 0.001 ? c.rgb / c.a : vec3(0.0);
       cc = 1.0 - exp(-cc * 1.35);
-      vec3 col = s * (1.0 - c.a) + cc * c.a;
-      vec2 q = vUv - 0.5;
-      col *= 1.0 - 0.35 * dot(q, q) * 1.6;
-      gl_FragColor = vec4(col, 1.0);
+      gl_FragColor = vec4(s * (1.0 - c.a) + cc * c.a, 1.0);
     }
   `,
   depthTest: false, depthWrite: false,
@@ -770,12 +783,168 @@ const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const fsGeo = new THREE.PlaneGeometry(2, 2);
 const cloudScene = new THREE.Scene(); { const m = new THREE.Mesh(fsGeo, cloudMat); m.frustumCulled = false; cloudScene.add(m); }
 const compScene = new THREE.Scene(); { const m = new THREE.Mesh(fsGeo, compMat); m.frustumCulled = false; compScene.add(m); }
-const sceneRT = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthTexture: new THREE.DepthTexture(4, 4) });
-const cloudRT = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType });
-cloudRT.texture.minFilter = cloudRT.texture.magFilter = THREE.LinearFilter;
-cloudMat.uniforms.uDepth.value = sceneRT.depthTexture;
-compMat.uniforms.uScene.value = sceneRT.texture;
-compMat.uniforms.uClouds.value = cloudRT.texture;
+const fsScene = (mat) => { const sc = new THREE.Scene(); const m = new THREE.Mesh(fsGeo, mat); m.frustumCulled = false; sc.add(m); return sc; };
+const HF = { type: THREE.HalfFloatType, depthBuffer: false };
+
+// Scene pass (MSAA in HD) with a depth texture the clouds stop against
+let sceneRT = null;
+function makeSceneRT(samples) {
+  if (sceneRT) { sceneRT.depthTexture.dispose(); sceneRT.dispose(); }
+  sceneRT = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples, depthTexture: new THREE.DepthTexture(4, 4) });
+  cloudMat.uniforms.uDepth.value = sceneRT.depthTexture;
+  compMat.uniforms.uScene.value = sceneRT.texture;
+}
+makeSceneRT(Q.samples);
+
+// Cloud pass writes colour and cloud depth
+const cloudRT = new THREE.WebGLRenderTarget(4, 4, Object.assign({ count: 2 }, HF));
+cloudRT.textures[0].minFilter = cloudRT.textures[0].magFilter = THREE.LinearFilter;
+cloudRT.textures[1].minFilter = cloudRT.textures[1].magFilter = THREE.NearestFilter;
+
+// Temporal accumulation: reproject last frame's clouds and blend, clamped to the local neighbourhood
+const histRT = [0, 1].map(() => { const r = new THREE.WebGLRenderTarget(4, 4, HF); r.texture.minFilter = r.texture.magFilter = THREE.LinearFilter; return r; });
+let histIdx = 0, histValid = false;
+const prevVP = new THREE.Matrix4();
+const resolveMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uCur: { value: cloudRT.textures[0] }, uDep: { value: cloudRT.textures[1] }, uHist: { value: null },
+    uPrevVP: { value: prevVP }, uInvProj: cloudMat.uniforms.uInvProj, uCamWorld: cloudMat.uniforms.uCamWorld,
+    uCamPos: cloudMat.uniforms.uCamPos, uTexel: { value: new THREE.Vector2(1, 1) }, uBlend: { value: 0 },
+  },
+  vertexShader: FS_VERT,
+  fragmentShader: /* glsl */`
+    uniform sampler2D uCur, uDep, uHist;
+    uniform mat4 uPrevVP, uInvProj, uCamWorld;
+    uniform vec3 uCamPos;
+    uniform vec2 uTexel;
+    uniform float uBlend;
+    varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(uCur, vUv);
+      vec4 mn = c, mx = c;
+      for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+        vec4 s = texture2D(uCur, vUv + vec2(float(i), float(j)) * uTexel);
+        mn = min(mn, s); mx = max(mx, s);
+      }
+      float d = texture2D(uDep, vUv).x;
+      vec4 v = uInvProj * vec4(vUv * 2.0 - 1.0, 1.0, 1.0); v /= v.w;
+      vec3 rd = normalize((uCamWorld * vec4(v.xyz, 0.0)).xyz);
+      vec3 wp = uCamPos + rd * (d > 0.0 ? d : 300.0);
+      vec4 pc = uPrevVP * vec4(wp, 1.0);
+      vec2 puv = pc.xy / pc.w * 0.5 + 0.5;
+      float ok = step(0.0, puv.x) * step(puv.x, 1.0) * step(0.0, puv.y) * step(puv.y, 1.0) * step(0.0, pc.w);
+      vec4 h = clamp(texture2D(uHist, puv), mn, mx);
+      gl_FragColor = mix(c, h, uBlend * ok);
+    }
+  `,
+  depthTest: false, depthWrite: false,
+});
+const resolveScene = fsScene(resolveMat);
+
+// Composite → bloom → final
+const compRT = new THREE.WebGLRenderTarget(4, 4, HF);
+compRT.texture.minFilter = compRT.texture.magFilter = THREE.LinearFilter;
+const bloomA = new THREE.WebGLRenderTarget(4, 4, HF), bloomB = new THREE.WebGLRenderTarget(4, 4, HF);
+for (const b of [bloomA, bloomB]) b.texture.minFilter = b.texture.magFilter = THREE.LinearFilter;
+const brightMat = new THREE.ShaderMaterial({
+  uniforms: { uSrc: { value: compRT.texture }, uTexel: { value: new THREE.Vector2(1, 1) } },
+  vertexShader: FS_VERT,
+  fragmentShader: /* glsl */`
+    uniform sampler2D uSrc; uniform vec2 uTexel; varying vec2 vUv;
+    void main() {
+      vec3 c = (texture2D(uSrc, vUv + uTexel * vec2(-1.0, -1.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(1.0, -1.0)).rgb
+              + texture2D(uSrc, vUv + uTexel * vec2(-1.0, 1.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(1.0, 1.0)).rgb) * 0.25;
+      float l = max(c.r, max(c.g, c.b));
+      float k = smoothstep(0.62, 1.1, l);
+      gl_FragColor = vec4(c * k, 1.0);
+    }
+  `,
+  depthTest: false, depthWrite: false,
+});
+const blurMat = new THREE.ShaderMaterial({
+  uniforms: { uSrc: { value: null }, uDir: { value: new THREE.Vector2() } },
+  vertexShader: FS_VERT,
+  fragmentShader: /* glsl */`
+    uniform sampler2D uSrc; uniform vec2 uDir; varying vec2 vUv;
+    void main() {
+      vec3 c = texture2D(uSrc, vUv).rgb * 0.2270;
+      c += (texture2D(uSrc, vUv + uDir * 1.3846).rgb + texture2D(uSrc, vUv - uDir * 1.3846).rgb) * 0.3162;
+      c += (texture2D(uSrc, vUv + uDir * 3.2308).rgb + texture2D(uSrc, vUv - uDir * 3.2308).rgb) * 0.0703;
+      gl_FragColor = vec4(c, 1.0);
+    }
+  `,
+  depthTest: false, depthWrite: false,
+});
+const finalMat = new THREE.ShaderMaterial({
+  uniforms: { uSrc: { value: compRT.texture }, uBloom: { value: bloomA.texture }, uFrame: cloudMat.uniforms.uFrame },
+  vertexShader: FS_VERT,
+  fragmentShader: /* glsl */`
+    uniform sampler2D uSrc, uBloom; uniform float uFrame; varying vec2 vUv;
+    void main() {
+      vec3 col = texture2D(uSrc, vUv).rgb + texture2D(uBloom, vUv).rgb * 0.55;
+      vec2 q = vUv - 0.5;
+      col *= 1.0 - 0.56 * dot(q, q);
+      float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)) + uFrame * 0.1));
+      col += (n - 0.5) / 255.0;
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `,
+  depthTest: false, depthWrite: false,
+});
+const brightScene = fsScene(brightMat), blurScene = fsScene(blurMat), finalScene = fsScene(finalMat);
+
+// 128³ Perlin–Worley noise rendered on the GPU, slice by slice
+function makeNoiseGPU(N = 128) {
+  const rt = new THREE.WebGL3DRenderTarget(N, N, N, { format: THREE.RedFormat, type: THREE.UnsignedByteType, depthBuffer: false });
+  const tex = rt.texture;
+  tex.minFilter = tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = tex.wrapT = tex.wrapR = THREE.RepeatWrapping;
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uZ: { value: 0 }, uN: { value: N } },
+    vertexShader: FS_VERT,
+    fragmentShader: /* glsl */`
+      uniform float uZ, uN;
+      vec3 hash33(vec3 p) { p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.xxy + p.yxx) * p.zyx); }
+      float worley(vec3 p, float F) {
+        vec3 id = floor(p * F), f = fract(p * F);
+        float md = 1.0;
+        for (int z = -1; z <= 1; z++) for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+          vec3 o = vec3(float(x), float(y), float(z));
+          vec3 d = o + hash33(mod(id + o, F) + F * 13.7) - f;
+          md = min(md, dot(d, d));
+        }
+        return sqrt(md);
+      }
+      float gdot(vec3 i, vec3 f, vec3 o, float F) { return dot(normalize(hash33(mod(i + o, F) + F * 3.1) * 2.0 - 1.0 + 1e-4), f - o); }
+      float gnoise(vec3 p, float F) {
+        vec3 i = floor(p * F), f = fract(p * F);
+        vec3 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+        return mix(mix(mix(gdot(i, f, vec3(0, 0, 0), F), gdot(i, f, vec3(1, 0, 0), F), u.x),
+                       mix(gdot(i, f, vec3(0, 1, 0), F), gdot(i, f, vec3(1, 1, 0), F), u.x), u.y),
+                   mix(mix(gdot(i, f, vec3(0, 0, 1), F), gdot(i, f, vec3(1, 0, 1), F), u.x),
+                       mix(gdot(i, f, vec3(0, 1, 1), F), gdot(i, f, vec3(1, 1, 1), F), u.x), u.y), u.z);
+      }
+      void main() {
+        vec3 p = vec3(gl_FragCoord.xy / uN, uZ);
+        float pf = 0.5 + 0.8 * (gnoise(p, 4.0) * 0.55 + gnoise(p, 8.0) * 0.28 + gnoise(p, 16.0) * 0.12 + gnoise(p, 32.0) * 0.05);
+        float w = 1.0 - (worley(p, 4.0) * 0.6 + worley(p, 8.0) * 0.28 + worley(p, 16.0) * 0.12);
+        gl_FragColor = vec4(clamp(w * 0.62 + pf * 0.48 - 0.05, 0.0, 1.0), 0.0, 0.0, 1.0);
+      }
+    `,
+    depthTest: false, depthWrite: false,
+  });
+  const sc = fsScene(mat);
+  for (let z = 0; z < N; z++) {
+    mat.uniforms.uZ.value = (z + 0.5) / N;
+    renderer.setRenderTarget(rt, z);
+    renderer.render(sc, orthoCam);
+  }
+  renderer.setRenderTarget(null);
+  mat.dispose();
+  return tex;
+}
+try { U.uNoise.value = makeNoiseGPU(128); }
+catch (err) { console.warn('GPU noise failed, using CPU noise', err); U.uNoise.value = makeNoiseTexture(64); }
 
 /* ---------- sky ---------- */
 const sky = new THREE.Mesh(new THREE.SphereGeometry(600, 48, 24), new THREE.ShaderMaterial({
@@ -851,6 +1020,10 @@ const ocean = new THREE.Mesh(new THREE.PlaneGeometry(260, 260, 260, 260).rotateX
         float ph = dot(dirs[i], xz) * ks[i] - uTime * sqrt(ks[i]) * 1.6;
         d += dirs[i] * ks[i] * amp[i] * cos(ph);
       }
+      vec2 uvn = xz * 0.11 + wdir * uTime * 0.05;
+      float tz = uTime * 0.004, e = 0.02;
+      float h0 = texture(uNoise, vec3(uvn, tz)).r;
+      d += vec2(texture(uNoise, vec3(uvn + vec2(e, 0.0), tz)).r - h0, texture(uNoise, vec3(uvn + vec2(0.0, e), tz)).r - h0) / e * 0.012 * (0.4 + rough);
       vec3 N = normalize(vec3(-d.x, 1.0, -d.y));
       vec3 V = normalize(cameraPosition - vW);
       vec3 R = reflect(-V, N);
@@ -938,8 +1111,7 @@ const flowMat = new THREE.ShaderMaterial({
     }
   `,
 });
-const eyeFlowMat = flowMat.clone();
-eyeFlowMat.uniforms = Object.assign({}, flowMat.uniforms, { uKind: { value: 1 } });
+const eyeFlowMat = new THREE.ShaderMaterial({ uniforms: Object.assign({}, flowMat.uniforms, { uKind: { value: 1 } }), vertexShader: flowMat.vertexShader, fragmentShader: flowMat.fragmentShader });
 const flowGroup = new THREE.Group();
 scene.add(flowGroup);
 let flowBuilt = null;
@@ -1080,7 +1252,7 @@ function setTargets() {
   tgt.surge = m.surgeMid * (f === 'surge' ? 0.9 : 0.1) + m.ib * 0.004;
   // clouds: [eyewall, rainbands, canopy, eye]
   const D = {
-    engine: [0.75, 0.75, 0.75, 0.75], inflow: [0.3, 0.25, 0.2, 0.3], eyewall: [1, 0.15, 0.12, 0.3],
+    engine: [0.95, 0.95, 0.9, 0.95], inflow: [0.3, 0.25, 0.2, 0.3], eyewall: [1, 0.15, 0.12, 0.3],
     eye: [1, 1, 1, 1], rainbands: [0.15, 1, 0.1, 0.15], canopy: [1, 1, 1, 1], ocean: [0.18, 0.18, 0.12, 0.18],
     wind: [0.2, 0.2, 0.1, 0.2], surge: [0.18, 0.18, 0.1, 0.18], coriolis: [0.45, 0.45, 0.3, 0.45],
   }[f] || [1, 1, 1, 1];
@@ -1386,12 +1558,31 @@ window.addEventListener('keydown', (e) => {
 /* =====================================================================
    Layout, quality scaling, frame loop
    ===================================================================== */
-let W = 1, H = 1, cloudScale = 0.5;
+let W = 1, H = 1, cloudScale = Q.scale;
 function sizeTargets() {
-  const pw = Math.floor(W * DPR), ph = Math.floor(H * DPR);
-  sceneRT.setSize(pw, ph);
-  cloudRT.setSize(Math.max(1, Math.floor(pw * cloudScale)), Math.max(1, Math.floor(ph * cloudScale)));
+  const pr = renderer.getPixelRatio();
+  const pw = Math.max(1, Math.floor(W * pr)), ph = Math.max(1, Math.floor(H * pr));
+  sceneRT.setSize(pw, ph); compRT.setSize(pw, ph);
+  const cw = Math.max(1, Math.floor(pw * cloudScale)), ch = Math.max(1, Math.floor(ph * cloudScale));
+  cloudRT.setSize(cw, ch);
+  histRT.forEach(r => r.setSize(cw, ch));
+  resolveMat.uniforms.uTexel.value.set(1 / cw, 1 / ch);
+  const bw = Math.max(1, pw >> 2), bh = Math.max(1, ph >> 2);
+  bloomA.setSize(bw, bh); bloomB.setSize(bw, bh);
+  brightMat.uniforms.uTexel.value.set(1 / pw, 1 / ph);
+  histValid = false;
 }
+function setQuality(name) {
+  Q = QUALITY[name];
+  renderer.setPixelRatio(Q.dpr);
+  cloudScale = Q.scale;
+  cloudMat.uniforms.uSteps.value = Q.steps;
+  cloudMat.uniforms.uHD.value = Q.hd;
+  makeSceneRT(Q.samples);
+  $('hdBtn').setAttribute('aria-pressed', String(name === 'hd'));
+  resize();
+}
+$('hdBtn').addEventListener('click', () => setQuality(Q === QUALITY.hd ? 'fast' : 'hd'));
 function resize() {
   const r = stage.getBoundingClientRect();
   W = Math.max(1, r.width); H = Math.max(1, r.height);
@@ -1430,22 +1621,46 @@ function frame() {
   cloudMat.uniforms.uCamWorld.value.copy(camera.matrixWorld);
   cloudMat.uniforms.uCamPos.value.copy(camera.position);
 
+  cloudMat.uniforms.uFrame.value = (cloudMat.uniforms.uFrame.value + 1) % 4096;
+
+  // 1. scene (sky, sea, airflow) with depth
   renderer.setRenderTarget(sceneRT);
   renderer.setClearColor(0x04080e, 1);
   renderer.clear();
   renderer.render(scene, camera);
+  // 2. volumetric clouds, stopping at scene depth
   renderer.setRenderTarget(cloudRT);
   renderer.render(cloudScene, orthoCam);
-  renderer.setRenderTarget(null);
+  // 3. temporal accumulation
+  const prevH = histRT[histIdx], nextH = histRT[1 - histIdx];
+  resolveMat.uniforms.uHist.value = prevH.texture;
+  resolveMat.uniforms.uBlend.value = histValid ? 0.86 : 0;
+  renderer.setRenderTarget(nextH);
+  renderer.render(resolveScene, orthoCam);
+  histIdx = 1 - histIdx; histValid = true;
+  compMat.uniforms.uClouds.value = nextH.texture;
+  // 4. composite, bloom, final
+  renderer.setRenderTarget(compRT);
   renderer.render(compScene, orthoCam);
+  renderer.setRenderTarget(bloomA);
+  renderer.render(brightScene, orthoCam);
+  blurMat.uniforms.uSrc.value = bloomA.texture; blurMat.uniforms.uDir.value.set(1.6 / bloomA.width, 0);
+  renderer.setRenderTarget(bloomB);
+  renderer.render(blurScene, orthoCam);
+  blurMat.uniforms.uSrc.value = bloomB.texture; blurMat.uniforms.uDir.value.set(0, 1.6 / bloomA.height);
+  renderer.setRenderTarget(bloomA);
+  renderer.render(blurScene, orthoCam);
+  renderer.setRenderTarget(null);
+  renderer.render(finalScene, orthoCam);
+  prevVP.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
   placeLabels(W, H);
 
   // adapt cloud resolution to keep the frame rate smooth
   ftAvg = ftAvg * 0.95 + dt * 1000 * 0.05;
   if (++ftCount > 90) {
     ftCount = 0;
-    const next = ftAvg > 30 ? Math.max(0.28, cloudScale - 0.08) : ftAvg < 14 ? Math.min(0.6, cloudScale + 0.05) : cloudScale;
-    if (next !== cloudScale) { cloudScale = next; sizeTargets(); }
+    const next = ftAvg > 30 ? Math.max(Q.min, cloudScale - 0.1) : ftAvg < 14 ? Math.min(Q.max, cloudScale + 0.05) : cloudScale;
+    if (Math.abs(next - cloudScale) > 1e-3) { cloudScale = next; sizeTargets(); }
   }
   requestAnimationFrame(frame);
 }
