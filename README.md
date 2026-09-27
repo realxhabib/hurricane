@@ -13,6 +13,10 @@ Open `index.html` in a browser. It needs an internet connection to load Three.js
 - **See the surge.** The storm-surge lesson opens a detail view of a low coast: the sea rises over the dune and into homes as the storm strengthens, with a tide gauge, water depth at the first homes, the push on each metre of wall and the waves riding on top.
 - **Change the ocean and atmosphere.** Sea temperature, outflow temperature and wind shear drive the physics model directly.
 
+## On phones
+
+On narrow screens the storm fills the screen. The intensity bar sits in a bottom sheet, and the lesson collapses to a one-line bar with previous, next and Read. Tap the sea to probe it. Phones start in Fast rendering; the HD toggle is in the swipeable toolbar.
+
 ## Recording
 
 Open `index.html#capture` to freeze the clock. The page then exposes `window.__app` so a script can step time frame by frame (`__app.step(dt)`) and drive the tour, the intensity and the camera. `video/record.mjs` uses this with Playwright to render the showcase video.

@@ -220,25 +220,82 @@ details.notes a { color: var(--cold); }
 .dv-ladder button[aria-pressed="true"] b { color: var(--ink); }
 .dv-note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
 @media (max-width: 1320px) { .detailview { width: 380px; } .dv-view { height: 210px; } }
-@media (max-width: 900px) { .detailview { position: static; width: auto; } }
 @media (prefers-reduced-motion: reduce) { .c-badge.bump { animation: none; } .co { transition: none; } }
 @media (max-width: 1180px) { :root { --lesson-w: 330px; } .c-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 10px; } .c-stats div:nth-child(4) { border-left: 0; padding-left: 0; } }
+/* ---------- phones: full-screen storm with a bottom sheet ---------- */
+.l-mini { display: none; }
+.toolrow { display: contents; }
 @media (max-width: 900px) {
-  body { overflow: auto; }
-  html, body { height: auto; }
-  .app { position: static; display: grid; gap: 12px; padding: 0 12px 20px; }
-  .stage { position: relative; height: 64svh; min-height: 440px; margin: 0 -12px; }
-  .topbar { position: absolute; top: 10px; left: 12px; right: 12px; flex-wrap: wrap; gap: 8px; }
-  .brand { width: 100%; }
-  .tools { margin-left: auto; }
-  .lesson, .dock { position: static; width: auto; }
-  .dock { display: block; }
-  .console { width: 100%; order: -1; }
-  .c-head { flex-wrap: wrap; gap: 12px; }
-  .c-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 10px; }
-  .c-stats div { border-left: 0 !important; padding-left: 0 !important; }
+  :root { --g: 8px; }
+  body { overflow: hidden; }
+  .app { position: fixed; inset: 0; }
+  .stage { position: absolute; inset: 0; }
+  .topbar { top: calc(8px + env(safe-area-inset-top, 0px)); left: 8px; right: 8px; flex-direction: column; align-items: stretch; gap: 8px; }
+  .brand { gap: 9px; }
+  .mark { width: 24px; height: 24px; }
+  .brand strong { font-size: 17px; }
+  .brand span { display: none; }
+  .toolrow { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; margin: 0 -8px; padding: 0 8px; }
+  .toolrow::-webkit-scrollbar { display: none; }
+  .tabs { display: contents; }
+  .tabset, .tools { flex: none; }
+  .tabset button, .tools button { padding: 9px 11px; }
+
+  .dock { position: absolute; left: 0; right: 0; bottom: 0; width: auto; display: block; padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .console { width: 100%; padding: 11px 13px 9px; gap: 6px; border-radius: 16px; max-height: 62svh; overflow-y: auto; }
+  .c-head { gap: 10px; }
+  .c-cat { gap: 10px; }
+  .c-badge { min-width: 40px; height: 40px; padding: 0 7px; font-size: 25px; border-radius: 10px; }
+  .c-cat { flex: 1; }
+  .c-cat > div { min-width: 0; }
+  .c-cat strong { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .c-cat div span { display: none; }
+  .c-wind b { font-size: 30px; }
+  .c-wind { display: block; }
+  .c-wind span { display: none; }
+  .c-wind b::after { content: " kt"; font: 500 11px/1 var(--mono); color: var(--muted); letter-spacing: 0.06em; }
+  .c-wind small { display: none; }
+  .grow { width: 40px; height: 40px; padding: 0; font-size: 13px; }
+  .grow span { display: none; }
+  .c-track { padding-bottom: 20px; }
+  #kt { height: 34px; }
+  #kt::-webkit-slider-thumb { width: 26px; height: 26px; margin-top: -9px; }
+  .c-ticks button { padding: 4px 6px; font-size: 13px; }
+  .c-stats { display: flex; overflow-x: auto; scrollbar-width: none; padding-top: 8px; }
+  .c-stats::-webkit-scrollbar { display: none; }
+  .c-stats div { flex: none; min-width: 112px; padding: 0 10px; border-left: 1px solid var(--hair) !important; }
+  .c-stats div:first-child { border-left: 0 !important; padding-left: 0; }
+  .c-stats dd { font-size: 14.5px; }
   .c-drawer { grid-template-columns: minmax(0, 1fr); }
-  .irkey { top: auto; bottom: 12px; right: 12px; }
+
+  .lesson { position: absolute; left: 8px; right: 8px; top: auto; width: auto; bottom: calc(var(--console-h, 170px) + 14px + env(safe-area-inset-bottom, 0px)); max-height: 50svh; padding: 10px 12px; border-radius: 16px; }
+  .lesson .l-mini { display: grid; grid-template-columns: 38px 1fr auto 38px; align-items: center; gap: 8px; }
+  .l-mini button { height: 38px; border: 1px solid var(--hair-2); border-radius: 10px; background: rgba(255,255,255,0.05); cursor: pointer; font: 500 16px/1 var(--mono); color: var(--ink); }
+  .l-mini button:disabled { opacity: 0.3; }
+  .l-mini .l-read { padding: 0 12px; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .l-mini .l-read[aria-expanded="true"] { color: var(--ink); background: rgba(255,255,255,0.1); }
+  .l-mini .l-now { min-width: 0; }
+  .l-mini .l-now span { display: block; font: 500 10px/1 var(--mono); letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+  .l-mini .l-now strong { display: block; margin-top: 3px; font: 700 21px/1 var(--display); letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .l-mini .l-now strong::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: var(--c, var(--heat)); vertical-align: 3px; }
+  .lesson:not(.open) > :not(.l-mini) { display: none; }
+  .lesson.open > .l-mini { position: sticky; top: -10px; z-index: 1; margin: -10px -12px 8px; padding: 10px 12px; background: var(--glass-2); border-bottom: 1px solid var(--hair); }
+  .lesson .l-nav { display: none; }
+  .lesson .l-title { font-size: 30px; }
+  .lesson .l-top { display: none; }
+
+  .detailview { left: 8px; right: 8px; width: auto; top: calc(96px + env(safe-area-inset-top, 0px)); padding: 10px 12px; gap: 8px; }
+  .dv-head strong { font-size: 30px; margin-top: 2px; }
+  .dv-head .eyebrow { font-size: 9px; }
+  .dv-view { height: 150px; }
+  .dv-ladder { height: 34px; }
+  .dv-stats, .dv-note { display: none; }
+  .probe { min-width: 180px; font-size: 11px; }
+  .irkey { top: auto; bottom: calc(var(--console-h, 170px) + 90px); right: 8px; width: 220px; }
+}
+@media (max-width: 900px) and (max-height: 700px) {
+  .dv-view { height: 110px; }
+  .dv-ladder { display: none; }
 }
 </style>
 </head>
@@ -255,6 +312,7 @@ details.notes a { color: var(--cold); }
     </div>
     <header class="topbar">
       <div class="brand"><span class="mark" aria-hidden="true"></span><div><strong>Hurricane Heat Engine</strong><span>Interactive field guide</span></div></div>
+      <div class="toolrow">
       <nav class="tabs" aria-label="View">
         <div class="tabset" id="viewSeg">
           <button type="button" data-view="whole" aria-pressed="true">Whole</button>
@@ -270,6 +328,7 @@ details.notes a { color: var(--cold); }
         <button type="button" id="flowBtn" aria-pressed="false" title="Show the airflow through the storm">Airflow</button>
         <button type="button" id="hdBtn" aria-pressed="true" title="High-definition rendering">HD</button>
         <button type="button" id="resetBtn" aria-pressed="false">Reset view</button>
+      </div>
       </div>
     </header>
   </main>
@@ -296,7 +355,7 @@ details.notes a { color: var(--cold); }
       <div class="c-head">
         <div class="c-cat"><span class="c-badge" id="catChip">4</span><div><strong id="catName">Category 4</strong><span id="catSub">Major hurricane</span></div></div>
         <div class="c-wind"><b id="rWind">124</b><span>kt sustained</span><small id="rWind2">143 mph · 230 km/h</small></div>
-        <button type="button" class="grow" id="growBtn" aria-pressed="false">▶ Grow it</button>
+        <button type="button" class="grow" id="growBtn" aria-pressed="false" aria-label="Grow it">▶<span> Grow it</span></button>
       </div>
       <div class="c-track">
         <input type="range" id="kt" min="15" max="165" step="1" value="124" aria-label="Storm intensity, maximum sustained wind in knots">
@@ -630,7 +689,9 @@ const QUALITY = {
   hd:   { dpr: Math.min(devicePixelRatio || 1, 2), scale: 0.72, min: 0.5, max: 1.0, steps: 104, samples: 4, hd: 1 },
   fast: { dpr: 1, scale: 0.45, min: 0.3, max: 0.5, steps: 60, samples: 0, hd: 0 },
 };
-let Q = QUALITY.hd;
+const PHONE = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 820;
+QUALITY.fast.dpr = Math.min(devicePixelRatio || 1, PHONE ? 1.5 : 1);
+let Q = PHONE ? QUALITY.fast : QUALITY.hd;
 renderer.setPixelRatio(Q.dpr);
 
 const scene = new THREE.Scene();
@@ -1523,13 +1584,20 @@ const VIEWS = {
   coriolis: { r: 210, phi: 0.05, ty: 0 },
 };
 let flight = null, autoFrame = 0;
-function framingRadius() { return 2.0 * tgt.bandR + 14; }
+const portrait = () => W / H < 0.9;
+function framingRadius() { return (2.0 * tgt.bandR + 14) * (portrait() ? clamp(0.95 / (W / H), 1.2, 2.1) : 1); }
+function homePose() {
+  if (!portrait()) return { pos: HOME.pos.clone(), target: HOME.target.clone() };
+  const target = new THREE.Vector3(0, 4, 0);
+  const pos = new THREE.Vector3().setFromSpherical(new THREE.Spherical(framingRadius(), 1.05, Math.atan2(HOME.pos.x, HOME.pos.z))).add(target);
+  return { pos, target };
+}
 function flyTo(key) {
   const from = { pos: camera.position.clone(), target: controls.target.clone() };
   let toPos, toTarget;
   const off = camera.position.clone().sub(controls.target);
   const sph = new THREE.Spherical().setFromVector3(off);
-  if (key === 'home') { toPos = HOME.pos.clone(); toTarget = HOME.target.clone(); }
+  if (key === 'home') { const h = homePose(); toPos = h.pos; toTarget = h.target; }
   else if (key === 'eye') {
     // hover above the cloud tops and look down the stadium to the sea
     toTarget = new THREE.Vector3(0, tgt.top * 0.25, 0);
@@ -1537,7 +1605,7 @@ function flyTo(key) {
     toPos = new THREE.Vector3().setFromSpherical(sph).add(toTarget);
   } else if (key === 'overview' || key === 'category') {
     toTarget = new THREE.Vector3(0, 6, 0);
-    sph.radius = framingRadius(); sph.phi = 1.36;
+    sph.radius = framingRadius(); sph.phi = portrait() ? 1.05 : 1.36;
     toPos = new THREE.Vector3().setFromSpherical(sph).add(toTarget);
   } else {
     const v = VIEWS[key]; if (!v) return;
@@ -1630,8 +1698,10 @@ function anchor(key) {
   return tmpV.set(0, 0, 0);
 }
 function placeLabels(w, h) {
-  const set = LABEL_SETS[state.focus] || [];
-  const occl = [...document.querySelectorAll('.lesson, .console, .topbar > *, .detailview:not([hidden])')].map(el => el.getBoundingClientRect());
+  let set = LABEL_SETS[state.focus] || [];
+  // on a narrow screen, point at fewer parts so the callouts don't pile up
+  if (w < 600 && set.length > 2) set = set.filter(k => k === state.focus || k === 'canopy' || k === 'rainbands' || k.startsWith('leg'));
+  const occl = [...document.querySelectorAll('.lesson, .console, .brand, .tabset, .tools, .detailview:not([hidden])')].map(el => el.getBoundingClientRect());
   const sr = stage.getBoundingClientRect();
   // callouts only make sense once the storm is big enough on screen to point at its parts
   const c0 = tmpV.set(0, 0, 0).project(camera).clone(), c1 = tmpV.set(cur.bandR, 0, 0).project(camera);
@@ -1659,19 +1729,33 @@ const ray = new THREE.Raycaster();
 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const ndc = new THREE.Vector2();
 let probeOn = false, pointerDown = false;
-canvas.addEventListener('pointerdown', () => { pointerDown = true; hideProbe(); });
-window.addEventListener('pointerup', () => { pointerDown = false; });
-canvas.addEventListener('pointerleave', hideProbe);
+let downAt = null, probeTimer = 0;
+canvas.addEventListener('pointerdown', (e) => { pointerDown = true; hideProbe(); downAt = { x: e.clientX, y: e.clientY, t: performance.now(), type: e.pointerType }; });
+window.addEventListener('pointerup', (e) => {
+  pointerDown = false;
+  // on touch screens there is no hover, so a quick tap probes the sea instead
+  if (downAt && downAt.type !== 'mouse' && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 10 && performance.now() - downAt.t < 350) {
+    probeAt(e.clientX, e.clientY);
+    clearTimeout(probeTimer); probeTimer = setTimeout(hideProbe, 4000);
+  }
+  downAt = null;
+});
+canvas.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') hideProbe(); });
 canvas.addEventListener('pointermove', (e) => {
-  if (pointerDown || flight || state.focus === 'eye') return;
+  if (pointerDown || e.pointerType !== 'mouse') return;
+  probeAt(e.clientX, e.clientY);
+});
+function probeAt(cx, cy) {
+  if (flight || state.focus === 'eye') return;
   const rect = canvas.getBoundingClientRect();
+  const e = { clientX: cx, clientY: cy };
   ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   plane.constant = -U.uOceanY.value;
   const hit = ray.ray.intersectPlane(plane, new THREE.Vector3());
   if (!hit || Math.hypot(hit.x, hit.z) > 70) { hideProbe(); return; }
   showProbe(hit, e.clientX - rect.left, e.clientY - rect.top, rect.width);
-});
+}
 function hideProbe() { probeOn = false; probeEl.style.opacity = '0'; }
 function showProbe(hit, px, py, w) {
   const m = M;
@@ -1690,8 +1774,10 @@ function showProbe(hit, px, py, w) {
     <div><span>Pressure</span>${fmt(p)} hPa</div>
     <div><span>Wind class</span>${kt < 34 ? 'below storm force' : c.key === 'TS' ? 'tropical storm' : 'Category ' + c.key}</div>
     <div class="zone">${zone}${side}</div>`;
-  const left = px + 18 + 230 > w ? px - 18 - 230 : px + 18;
-  probeEl.style.transform = `translate(${left}px, ${py + 14}px)`;
+  const pw = probeEl.offsetWidth || 200, ph = probeEl.offsetHeight || 110;
+  const left = clamp(px + 18 + pw > w ? px - 18 - pw : px + 18, 8, w - pw - 8);
+  const top = clamp(py + 14, 8, stage.clientHeight - ph - 8);
+  probeEl.style.transform = `translate(${left}px, ${top}px)`;
   probeEl.style.opacity = '1';
   probeOn = true;
   probe3d.position.set(hit.x, U.uOceanY.value, hit.z);
@@ -1947,7 +2033,13 @@ function renderLesson() {
   lessonEl.style.setProperty('--c', color);
   const stepTxt = idx === 0 ? 'Overview' : `<b>${String(idx).padStart(2, '0')}</b> / ${TOUR.length - 1}`;
   const prog = TOUR.slice(1).map((k, i) => `<i class="${i + 1 < idx ? 'done' : i + 1 === idx ? 'now' : ''}"></i>`).join('');
-  let html = `<div class="l-top"><span class="l-step">${stepTxt}</span><button type="button" class="l-menu" id="menuBtn" aria-expanded="${menuOpen}">${menuOpen ? 'Close' : 'All parts'}</button></div><div class="l-progress" aria-hidden="true">${prog}</div>`;
+  const prevK = TOUR[idx - 1], nextK = TOUR[idx + 1];
+  const miniTitle = key === 'overview' ? 'Start here' : key === 'category' ? catLabel(M.cat.key) : PART[key].name;
+  let html = `<div class="l-mini"><button type="button" data-go="${prevK || ''}" ${prevK ? '' : 'disabled'} aria-label="Previous part">‹</button>`
+    + `<div class="l-now"><span>${idx === 0 ? 'Overview' : `${String(idx).padStart(2, '0')} / ${TOUR.length - 1}`}</span><strong>${miniTitle}</strong></div>`
+    + `<button type="button" class="l-read" aria-expanded="${lessonOpen}">${lessonOpen ? 'Close' : 'Read'}</button>`
+    + `<button type="button" data-go="${nextK || ''}" ${nextK ? '' : 'disabled'} aria-label="Next part">›</button></div>`;
+  html += `<div class="l-top"><span class="l-step">${stepTxt}</span><button type="button" class="l-menu" id="menuBtn" aria-expanded="${menuOpen}">${menuOpen ? 'Close' : 'All parts'}</button></div><div class="l-progress" aria-hidden="true">${prog}</div>`;
   if (menuOpen) {
     html += `<p class="eyebrow">Jump to a part</p><ul class="l-list">${TOUR.slice(1).map((k, i) => `<li><button type="button" data-go="${k}" aria-current="${k === key}"><span>${String(i + 1).padStart(2, '0')}</span><strong>${PART[k].name}</strong><em>${PART[k].tag(M)}</em></button></li>`).join('')}</ul>`;
   } else {
@@ -1960,6 +2052,7 @@ function renderLesson() {
   const st = lessonEl.scrollTop;
   lessonEl.innerHTML = html;
   lessonEl.scrollTop = st;
+  lessonEl.classList.toggle('open', lessonOpen);
 }
 const NOTES_HTML = `<details class="notes"><summary>How the numbers work</summary><ul>
   <li><b>Potential intensity</b> follows Emanuel’s heat-engine theory (Emanuel 1986; Bister &amp; Emanuel 1998), with C<sub>k</sub>/C<sub>d</sub> = 0.9, near-surface air at 80% humidity and 1 °C cooler than the sea, and a 0.8 reduction from gradient-level to 10 m wind.</li>
@@ -1969,7 +2062,9 @@ const NOTES_HTML = `<details class="notes"><summary>How the numbers work</summar
   <li><b>Surge</b> ranges are the historical Saffir–Simpson values, dropped from the scale in 2010 because real surge depends on coastline shape and depth.</li>
   <li>Sources: <a href="https://www.aoml.noaa.gov/hrd-faq/" target="_blank" rel="noopener">NOAA HRD FAQ</a>, <a href="https://www.nhc.noaa.gov/aboutsshws.php" target="_blank" rel="noopener">NHC Saffir–Simpson scale</a>, <a href="https://emanuel.mit.edu/limits-hurricane-intensity" target="_blank" rel="noopener">Emanuel, limits on hurricane intensity</a>.</li>
 </ul></details>`;
+let lessonOpen = false;
 lessonEl.addEventListener('click', (e) => {
+  if (e.target.closest('.l-read')) { lessonOpen = !lessonOpen; lessonEl.scrollTop = 0; renderLesson(); return; }
   if (e.target.closest('#menuBtn')) { menuOpen = !menuOpen; renderLesson(); return; }
   const go = e.target.closest('[data-go]');
   if (go && go.dataset.go) { menuOpen = false; select(go.dataset.go); lessonEl.scrollTop = 0; renderLesson(); return; }
@@ -2015,12 +2110,12 @@ function startGrow(from = 20, to = 152, dur = 18) {
   grow = { t: 0, dur, acc: 1, from, to };
   controls.autoRotate = !reduceMotion; controls.autoRotateSpeed = 0.55;
   autoFrame = dur + 3;
-  $('growBtn').setAttribute('aria-pressed', 'true'); $('growBtn').textContent = '■ Stop';
+  $('growBtn').setAttribute('aria-pressed', 'true'); $('growBtn').innerHTML = '■<span> Stop</span>'; $('growBtn').setAttribute('aria-label', 'Stop');
 }
 function stopGrow() {
   if (!grow) return;
   grow = null; controls.autoRotate = false;
-  $('growBtn').setAttribute('aria-pressed', 'false'); $('growBtn').textContent = '▶ Grow it';
+  $('growBtn').setAttribute('aria-pressed', 'false'); $('growBtn').innerHTML = '▶<span> Grow it</span>'; $('growBtn').setAttribute('aria-label', 'Grow it');
 }
 $('growBtn').addEventListener('click', () => grow ? stopGrow() : startGrow());
 function stepGrow(dt) {
@@ -2040,7 +2135,8 @@ function renderReadout() {
   $('catChip').textContent = m.cat.key;
   $('catChip').style.setProperty('--cc', m.cat.color);
   ktEl.style.setProperty('--thumb', m.cat.color);
-  $('catName').textContent = catLabel(m.cat.key);
+  const SHORT = { TD: 'Depression', TS: 'Tropical storm', '1': 'Hurricane', '2': 'Hurricane', '3': 'Major hurricane', '4': 'Major hurricane', '5': 'Major hurricane' };
+  $('catName').textContent = innerWidth < 600 ? SHORT[m.cat.key] : catLabel(m.cat.key);
   $('catSub').textContent = state.sst < 25.9 ? 'Sea too cool to sustain a hurricane' : CAT_SUB[m.cat.key];
   $('rWind').textContent = fmt(m.kt);
   $('rWind2').textContent = `${fmt(m.kt * 1.15078)} mph · ${fmt(m.kt * 1.852)} km/h`;
@@ -2143,16 +2239,24 @@ function resize() {
   camera.aspect = W / H;
   camera.fov = W < 600 ? 52 : 40;
   // centre the storm in the space the lesson card and console leave free
+  const ch = $('console').getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--console-h', `${Math.round(ch)}px`);
   if (matchMedia('(min-width: 901px)').matches) {
     const lw = lessonEl.getBoundingClientRect().width + 18;
     const ch = $('console').getBoundingClientRect().height + 18;
     camera.setViewOffset(W, H, -lw / 2, ch / 2 - 30, W, H);
-  } else camera.clearViewOffset();
+  } else {
+    // centre the storm between the toolbar and the bottom sheet
+    const top = document.querySelector('.toolrow').getBoundingClientRect().bottom - r.top;
+    const bottom = r.bottom - lessonEl.getBoundingClientRect().top;
+    camera.setViewOffset(W, H, 0, (bottom - top) / 2, W, H);
+  }
   camera.updateProjectionMatrix();
   sizeTargets();
 }
 new ResizeObserver(resize).observe(stage);
 new ResizeObserver(resize).observe($('console'));
+new ResizeObserver(() => { if (!matchMedia('(min-width: 901px)').matches) resize(); }).observe(lessonEl);
 
 const clock = new THREE.Clock();
 const CAPTURE = location.hash === '#capture';
@@ -2233,7 +2337,8 @@ if (CAPTURE) {
   Object.assign(state, conditionsFor(22)); update();
   Object.assign(cur, tgt);
   camera.position.set(150, 120, 300);
-  flight = { from: { pos: camera.position.clone(), target: controls.target.clone() }, toPos: HOME.pos.clone(), toTarget: HOME.target.clone(), t: 0, dur: 7 };
+  const h = homePose();
+  flight = { from: { pos: camera.position.clone(), target: controls.target.clone() }, toPos: h.pos, toTarget: h.target, t: 0, dur: 7 };
   setTimeout(() => { startGrow(22, target, 9); controls.autoRotate = false; autoFrame = 0; }, 600);
 }
 if (!CAPTURE) requestAnimationFrame(frame);
