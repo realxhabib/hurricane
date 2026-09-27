@@ -721,7 +721,7 @@ const STORM_GLSL = /* glsl */`
     c = mix(c, vec3(0.88, 0.14, 0.23), ramp(-65.0, -72.0, t));
     c = mix(c, vec3(0.43, 0.06, 0.24), ramp(-72.0, -78.0, t));
     c = mix(c, vec3(1.00, 1.00, 1.00), ramp(-78.0, -85.0, t));
-    return pow(c, vec3(2.2)) * 1.6;
+    return pow(c, vec3(2.2)) * 1.25;
   }
   vec3 fogColor(vec3 dir) {
     float s = max(dot(dir, uSun), 0.0);

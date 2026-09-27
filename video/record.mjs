@@ -29,7 +29,7 @@ const EVENTS = [
   [11.5, `__app.setAutoRotate(false); __app.select('engine')`],
   [13.4, `__app.setAutoRotate(true, 0.35)`],
   [16.0, `__app.setAutoRotate(false); __app.setKt(89); __app.select('surge')`],
-  [21.0, `__app.setView('whole', true); __app.select('canopy'); __app.setImg('ir')`],
+  [21.0, `__app.setView('whole', true); __app.select('overview'); __app.flyTo('canopy'); __app.setImg('ir')`],
   [22.6, `__app.setAutoRotate(true, 0.6)`],
   [24.2, `__app.setAutoRotate(false); __app.setImg('visible'); __app.select('overview')`],
 ];
