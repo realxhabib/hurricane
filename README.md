@@ -6,12 +6,15 @@ Open `index.html` in a browser. It needs an internet connection to load Three.js
 
 ## What you can do
 
-- **Orbit and zoom** the storm. Heights are exaggerated 8× and range rings mark every 100 km.
-- **Whole / Cutaway / Exploded**: see it as a satellite would, sliced in half, or pulled apart into layers.
+- **Orbit and zoom** a raymarched, sunlit volumetric storm. It casts its shadow on a wind-roughened sea with whitecaps under the eyewall.
+- **Whole / Sliced / Exploded**: see it as a satellite would, slice a wedge out of it (the slice follows your view and its angle is adjustable), or pull it apart into layers.
+- **Fly to any part**: selecting a part flies the camera to it. Pick the eye to drop inside it and look up at the stadium of eyewall cloud.
+- **Probe the sea**: hover anywhere on the ocean to read the local wind, pressure and wind class.
 - **Visible / Infrared**: switch to a satellite-style infrared view coloured by cloud-top temperature.
-- **Airflow**: tracers show the secondary circulation. Moist air flows in along the sea surface, rises in the eyewall, flows out at the top and sinks in the eye.
-- **Every part**: heat engine, warm ocean, surface inflow, eyewall, eye, spiral rainbands, outflow canopy, wind field, storm surge and Coriolis spin. Selecting a part highlights it in 3D and explains it, with figures that update live.
-- **Set the conditions**: change sea surface temperature, outflow temperature and wind shear. The panel then shows the storm's category, wind, pressure, Carnot efficiency, heat released, wind power and typical surge.
+- **Airflow**: glowing streamlines show the secondary circulation. Air flows in along the sea, rises in the eyewall, flows out at the top and sinks in the eye.
+- **Set the conditions**: change sea surface temperature, outflow temperature and wind shear, and watch the category, wind, pressure, Carnot efficiency, heat released, wind power and surge change. The storm reshapes as you go: the eye clears, the tops rise and shear tilts it.
+
+It needs WebGL2. The cloud resolution adapts to keep the frame rate smooth.
 
 ## The model
 
