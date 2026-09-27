@@ -10,7 +10,12 @@ Open `index.html` in a browser. It needs an internet connection to load Three.js
 - **Take the tour.** A guided lesson card walks through eleven parts: heat engine, warm ocean, surface inflow, eyewall, eye, rainbands, outflow canopy, wind field, storm surge, Coriolis spin and the Saffir–Simpson categories. Each step flies the camera to the part and highlights it.
 - **Explore.** Orbit and zoom, slice the storm open, pull it apart into layers, switch to satellite-style infrared, show the airflow, or hover the sea to probe the local wind and pressure.
 - **Compare categories.** The category lesson has damage descriptions, real example storms, a wind-power chart (power ∝ wind³) and a table comparing pressure, eye size, hurricane-wind reach and cloud tops.
+- **See the surge.** The storm-surge lesson opens a detail view of a low coast: the sea rises over the dune and into homes as the storm strengthens, with a tide gauge, water depth at the first homes, the push on each metre of wall and the waves riding on top.
 - **Change the ocean and atmosphere.** Sea temperature, outflow temperature and wind shear drive the physics model directly.
+
+## Recording
+
+Open `index.html#capture` to freeze the clock. The page then exposes `window.__app` so a script can step time frame by frame (`__app.step(dt)`) and drive the tour, the intensity and the camera. `video/record.mjs` uses this with Playwright to render the showcase video.
 
 ## Rendering
 
