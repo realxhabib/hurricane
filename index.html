@@ -4,300 +4,302 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hurricane Heat Engine</title>
-<meta name="description" content="Open up a hurricane in 3D. Slice it, pull it apart, fly into the eye, and change the sea temperature to watch its power change.">
+<meta name="description" content="An interactive field guide to hurricanes. Watch a storm grow from a depression to Category 5 over the open ocean, slice it open, fly into the eye, and learn every part of the engine.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root {
   color-scheme: dark;
-  --bg: #04080e;
-  --glass: rgba(8, 14, 22, 0.72);
-  --glass-strong: rgba(8, 14, 22, 0.86);
-  --raise: rgba(255, 255, 255, 0.05);
-  --line: rgba(160, 190, 220, 0.12);
-  --line-strong: rgba(160, 190, 220, 0.24);
-  --ink: #e8eef4;
-  --muted: #93a4b8;
-  --faint: #62748a;
+  --bg: #03070c;
+  --glass: rgba(5, 10, 17, 0.66);
+  --glass-2: rgba(5, 10, 17, 0.84);
+  --hair: rgba(200, 222, 240, 0.13);
+  --hair-2: rgba(200, 222, 240, 0.24);
+  --ink: #eef3f7;
+  --soft: #c9d4de;
+  --muted: #98a9bb;
+  --faint: #66788c;
   --heat: #ff8a3d;
-  --moist: #46c7b8;
   --cold: #b9c6ff;
-  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
-  --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --panel-w: 360px;
-  --gap: 16px;
+  --moist: #46c7b8;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --lesson-w: 372px;
+  --g: 18px;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 400 14px/1.55 var(--body); -webkit-font-smoothing: antialiased; overflow: hidden; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 14.5px/1.55 var(--body); -webkit-font-smoothing: antialiased; overflow: hidden; }
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--heat); outline-offset: 2px; }
+.glass { background: var(--glass); border: 1px solid var(--hair); border-radius: 16px; backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 20px 60px -30px rgba(0,0,0,0.8); }
+.eyebrow { font: 500 10.5px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 
 .app { position: fixed; inset: 0; }
-.stage { position: absolute; inset: 0; overflow: hidden; }
+.stage { position: absolute; inset: 0; overflow: hidden; background: var(--bg); }
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 #gl:active { cursor: grabbing; }
-.glass { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); }
 
-.masthead { position: absolute; left: 24px; top: 20px; pointer-events: none; max-width: 420px; }
-.masthead h1 { margin: 0; font: 800 clamp(38px, 4.6vw, 64px)/0.86 var(--display); letter-spacing: 0.01em; text-transform: uppercase; text-wrap: balance; text-shadow: 0 2px 30px rgba(0,0,0,0.6); }
-.masthead h1 span { color: var(--heat); }
-.masthead p { margin: 10px 0 0; color: var(--muted); font-size: 13.5px; max-width: 36ch; text-shadow: 0 1px 12px rgba(0,0,0,0.8); }
+/* ---------- top bar ---------- */
+.topbar { position: absolute; left: var(--g); right: var(--g); top: 14px; display: flex; align-items: center; gap: 16px; pointer-events: none; }
+.topbar > * { pointer-events: auto; }
+.brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+.mark { width: 30px; height: 30px; border-radius: 50%; background: conic-gradient(from 200deg, #ff8a3d, #ffe775, #46c7b8, #b9c6ff, #ff8a3d); -webkit-mask: radial-gradient(circle, transparent 5px, #000 6px, #000 9px, transparent 10px, transparent 12px, #000 13px); mask: radial-gradient(circle, transparent 5px, #000 6px, #000 9px, transparent 10px, transparent 12px, #000 13px); }
+.brand strong { display: block; font: 700 21px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; }
+.brand span { display: block; margin-top: 3px; font: 400 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.tabs { display: flex; gap: 8px; }
+.tabset, .tools { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--glass); border: 1px solid var(--hair); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.tabset button, .tools button { border: 0; background: transparent; padding: 7px 11px; border-radius: 7px; cursor: pointer; font: 500 10.5px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.tabset button:hover, .tools button:hover { color: var(--ink); }
+.tabset button[aria-pressed="true"], .tools button[aria-pressed="true"] { background: rgba(255,255,255,0.1); color: var(--ink); }
 
-.viewbar { position: absolute; top: 20px; right: calc(var(--panel-w) + var(--gap) * 2); display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-.viewrow { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-.seg { display: flex; padding: 3px; border-radius: 9px; }
-.seg button { border: 0; background: transparent; padding: 7px 11px; border-radius: 6px; cursor: pointer; font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.seg button:hover { color: var(--ink); }
-.seg button[aria-pressed="true"] { background: rgba(255,255,255,0.09); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong); }
-.opening { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 9px; font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.opening input { width: 130px; }
-.opening output { color: var(--ink); min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; }
-
-.hint { position: absolute; left: 24px; margin: 0; pointer-events: none; font: 400 11px/1.4 var(--mono); color: var(--faint); letter-spacing: 0.04em; bottom: calc(var(--deck-h, 220px) + var(--gap) * 2); text-shadow: 0 1px 8px #000; }
-.irkey { position: absolute; right: calc(var(--panel-w) + var(--gap) * 2); bottom: calc(var(--deck-h, 220px) + var(--gap) * 2); width: 280px; padding: 10px 12px 4px; pointer-events: none; }
-.irkey .bar { height: 8px; border-radius: 2px; background: linear-gradient(90deg, #121418 0%, #6b7078 34.8%, #c8ccd0 52.2%, #3fa7ff 60.9%, #2fd17a 69.6%, #f5e04a 76.5%, #ff8a2a 82.6%, #e0243a 88.7%, #6d0f3c 93.9%, #ffffff 100%); }
-.irkey .ticks { position: relative; height: 16px; font: 400 10px/16px var(--mono); color: var(--muted); }
-.irkey .ticks span { position: absolute; transform: translateX(-50%); }
-.irkey .ticks span:first-child { transform: none; } .irkey .ticks span:last-child { transform: translateX(-100%); }
-.irkey .cap { font: 500 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-
-.labels { position: absolute; inset: 0; pointer-events: none; }
-.tag { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 7px; padding: 5px 10px 5px 7px; background: rgba(4, 8, 14, 0.66); border: 1px solid var(--line-strong); border-radius: 999px; font: 500 11px/1 var(--mono); letter-spacing: 0.04em; color: var(--ink); white-space: nowrap; transition: opacity 0.3s, border-color 0.2s, background 0.2s; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-.tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 28%, transparent), 0 0 12px var(--c); }
-.tag:hover { border-color: var(--c); }
-.tag.on { background: color-mix(in srgb, var(--c) 22%, rgba(4, 8, 14, 0.8)); border-color: var(--c); }
-.tag.leg { cursor: default; }
-.tag.leg b { color: var(--c); font-weight: 500; }
-.tag.note { cursor: default; color: var(--muted); border-style: dashed; }
-
-.probe { position: absolute; left: 0; top: 0; pointer-events: none; padding: 10px 12px; min-width: 190px; border-radius: 10px; background: var(--glass-strong); border: 1px solid var(--line-strong); font: 400 11.5px/1.5 var(--mono); transition: opacity 0.15s; }
-.probe b { display: block; font: 600 10px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-.probe div { display: flex; justify-content: space-between; gap: 14px; font-variant-numeric: tabular-nums; }
-.probe span { color: var(--faint); }
-.probe .zone { color: var(--ink); margin-top: 4px; }
-
-/* ---------- Deck ---------- */
-.deck { position: absolute; left: var(--gap); right: calc(var(--panel-w) + var(--gap) * 2); bottom: var(--gap); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); }
-.controls { padding: 16px 18px; border-right: 1px solid var(--line); display: grid; gap: 12px; align-content: start; }
-.deck h2, .panel h2 { margin: 0; font: 600 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
-.ctl { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: baseline; }
-.ctl label { font-weight: 500; font-size: 13px; }
-.ctl output { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
-.ctl small { grid-column: 1 / -1; color: var(--faint); font-size: 11.5px; line-height: 1.35; }
-input[type="range"] { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; height: 22px; background: transparent; -webkit-appearance: none; appearance: none; --track-a: #3a4a5c; --track-b: #c7d3df; }
-input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--track-a), var(--track-b)); }
-input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--track-a), var(--track-b)); }
-input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--ink); border: 3px solid #0a121c; box-shadow: 0 0 0 1px var(--line-strong), 0 0 14px rgba(255,255,255,0.25); cursor: pointer; }
-input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 3px solid #0a121c; cursor: pointer; }
-#sst { --track-a: #2b5f8f; --track-b: var(--heat); }
-#tout { --track-a: var(--cold); --track-b: #45506a; }
-.presets { display: flex; flex-wrap: wrap; gap: 6px; }
-.presets button { border: 1px solid var(--line-strong); background: transparent; border-radius: 999px; padding: 5px 10px; font: 400 11.5px/1 var(--body); color: var(--muted); cursor: pointer; }
-.presets button:hover { color: var(--ink); border-color: var(--muted); }
-
-.readout { padding: 16px 18px; display: grid; gap: 12px; align-content: start; }
-.scale { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
-.scale h2 { flex: none; }
-.segs { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; min-width: 0; }
-.segs button { --cc: #fff; display: grid; gap: 4px; justify-items: center; padding: 7px 2px 6px; border: 0; border-top: 3px solid var(--cc); border-radius: 3px 3px 7px 7px; background: rgba(255,255,255,0.035); cursor: pointer; color: var(--muted); transition: background .2s, color .2s, transform .2s, box-shadow .2s; }
-.segs button b { font: 800 17px/1 var(--display); letter-spacing: .04em; }
-.segs button small { font: 400 10px/1 var(--mono); color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.segs button:hover { color: var(--ink); background: rgba(255,255,255,0.08); }
-.segs button[aria-pressed="true"] { background: color-mix(in srgb, var(--cc) 24%, transparent); color: var(--ink); transform: translateY(-2px); box-shadow: 0 8px 20px -10px var(--cc); }
-.segs button[aria-pressed="true"] small { color: var(--ink); }
-.grow { flex: none; border: 1px solid var(--line-strong); background: rgba(255,255,255,0.05); border-radius: 999px; padding: 9px 14px; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
-.grow:hover, .grow[aria-pressed="true"] { border-color: var(--heat); color: var(--heat); }
-.cat.bump { animation: bump .5s ease; }
-@keyframes bump { 40% { transform: scale(1.14); } }
+/* ---------- lesson card ---------- */
+.lesson { position: absolute; left: var(--g); top: 70px; width: var(--lesson-w); max-height: calc(100% - 70px - var(--g)); overflow-y: auto; padding: 18px 20px 16px; display: flex; flex-direction: column; scrollbar-width: thin; }
+.l-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.l-step { font: 500 11px/1 var(--mono); letter-spacing: 0.12em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.l-step b { color: var(--ink); font-weight: 500; }
+.l-menu { border: 1px solid var(--hair-2); background: transparent; border-radius: 999px; padding: 5px 10px; cursor: pointer; font: 500 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.l-menu:hover { color: var(--ink); border-color: var(--muted); }
+.l-progress { display: grid; grid-template-columns: repeat(11, 1fr); gap: 3px; margin: 12px 0 16px; }
+.l-progress i { height: 2px; border-radius: 1px; background: var(--hair-2); }
+.l-progress i.done { background: var(--soft); }
+.l-progress i.now { background: var(--c, var(--heat)); }
+.l-group { margin: 0; }
+.l-title { margin: 6px 0 10px; font: 700 40px/0.92 var(--display); letter-spacing: 0.01em; text-transform: uppercase; color: var(--ink); text-wrap: balance; }
+.l-title::after { content: ""; display: block; width: 36px; height: 3px; margin-top: 12px; background: var(--c, var(--heat)); border-radius: 2px; }
+.lede { margin: 0 0 12px; font-size: 16px; line-height: 1.45; color: var(--ink); }
+.lesson p { margin: 0 0 10px; color: var(--soft); max-width: 62ch; }
+.hints { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 8px; }
+.hints li { display: grid; grid-template-columns: 76px 1fr; gap: 10px; font-size: 13px; color: var(--soft); }
+.hints b { font: 500 10px/1.6 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.specs { margin: 12px 0 0; display: grid; border-top: 1px solid var(--hair); }
+.specs div { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--hair); }
+.specs dt { color: var(--muted); font-size: 13px; }
+.specs dd { margin: 0; font: 500 12.5px/1.45 var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.specs dd.live::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--heat); margin-right: 7px; vertical-align: 2px; box-shadow: 0 0 8px var(--heat); }
+.l-nav { display: flex; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--hair); }
+.l-nav button { flex: 1; border: 1px solid var(--hair-2); background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px 12px; cursor: pointer; font: 500 11px/1.2 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); text-align: left; }
+.l-nav button:hover { border-color: var(--muted); color: var(--ink); }
+.l-nav button.next { text-align: right; background: rgba(255,255,255,0.09); color: var(--ink); }
+.l-nav button:disabled { opacity: 0.35; cursor: default; }
+.l-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 1px; }
+.l-list button { width: 100%; display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; padding: 9px 8px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; text-align: left; }
+.l-list button:hover { background: rgba(255,255,255,0.06); }
+.l-list button[aria-current="true"] { background: rgba(255,255,255,0.09); }
+.l-list span { font: 500 11px/1 var(--mono); color: var(--faint); font-variant-numeric: tabular-nums; }
+.l-list strong { font-weight: 500; }
+.l-list em { font: 400 11px/1 var(--mono); font-style: normal; color: var(--faint); }
+.example { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.05); font-size: 13px; color: var(--soft); }
+.example b { color: var(--ink); font-weight: 600; }
+.flyhint { margin: 12px 0 0 !important; font: 400 11.5px/1.45 var(--mono); color: var(--faint) !important; }
 .cchart { margin: 16px 0 0; }
-.cchart svg { width: 100%; height: auto; display: block; overflow: visible; --bar: #34465a; }
+.cchart svg { width: 100%; height: auto; display: block; overflow: visible; --bar: #33475c; }
 .cchart .bar { cursor: pointer; }
 .cchart .bar:hover path { filter: brightness(1.35); }
 .cchart .val { font: 500 11px/1 var(--mono); fill: var(--ink); }
 .cchart .xl { font: 500 10.5px/1 var(--mono); fill: var(--faint); }
 .cchart .xl.on { fill: var(--ink); }
-.cchart .axis { stroke: var(--line-strong); stroke-width: 1; }
-.cchart figcaption, .tcap { font-size: 11.5px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
-.example { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.04); font-size: 12.5px; color: #c3cfdb; }
-.example b { color: var(--ink); font-weight: 600; }
+.cchart .axis { stroke: var(--hair-2); stroke-width: 1; }
+.cchart figcaption, .tcap { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
 .ctable-wrap { overflow-x: auto; margin-top: 16px; }
 .ctable { width: 100%; border-collapse: collapse; font: 400 11.5px/1.3 var(--mono); font-variant-numeric: tabular-nums; }
 .ctable th { font: 500 9px/1.25 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint); text-align: right; padding: 0 0 6px 8px; vertical-align: bottom; }
 .ctable th:first-child, .ctable td:first-child { text-align: left; padding-left: 0; }
-.ctable td { text-align: right; padding: 6px 0 6px 8px; border-top: 1px solid var(--line); color: #b3c0cd; white-space: nowrap; }
+.ctable td { text-align: right; padding: 6px 0 6px 8px; border-top: 1px solid var(--hair); color: #b3c0cd; white-space: nowrap; }
 .ctable tr[data-cat] { cursor: pointer; }
 .ctable tr[data-cat]:hover td { color: var(--ink); }
-.ctable tr.on td { color: var(--ink); background: rgba(255,255,255,0.05); }
+.ctable tr.on td { color: var(--ink); background: rgba(255,255,255,0.06); }
 .ctable i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--cc); margin-right: 6px; }
-@media (prefers-reduced-motion: reduce) { .cat.bump { animation: none; } .segs button { transition: none; } }
-.verdict { display: flex; align-items: center; gap: 14px; }
-.cat { --cc: #ffc140; display: inline-grid; place-items: center; min-width: 58px; height: 58px; padding: 0 10px; border-radius: 10px; background: var(--cc); color: #0b0f14; font: 800 32px/1 var(--display); box-shadow: 0 0 30px color-mix(in srgb, var(--cc) 45%, transparent); transition: background 0.3s, box-shadow 0.3s; }
-.verdict .what { display: grid; gap: 3px; min-width: 0; }
-.verdict .what strong { font: 800 22px/1 var(--display); letter-spacing: 0.03em; text-transform: uppercase; }
-.verdict .what span { color: var(--muted); font-size: 12px; }
-.stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 16px; }
-.stat { display: grid; gap: 2px; align-content: start; min-width: 0; }
-.stat dt { font: 500 9.5px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
-.stat dd { margin: 0; font: 500 18px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
-.stat dd small { font-size: 11.5px; color: var(--muted); }
-.stat p { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.35; }
-.stat.hot dd { color: var(--heat); }
-
-/* ---------- Panel ---------- */
-.panel { position: absolute; right: var(--gap); top: var(--gap); bottom: var(--gap); width: var(--panel-w); overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; }
-.panel section { padding: 16px 18px; border-bottom: 1px solid var(--line); }
-.parts { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 1px; }
-.parts button { width: 100%; display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; text-align: left; }
-.parts button:hover { background: var(--raise); }
-.parts button[aria-pressed="true"] { background: color-mix(in srgb, var(--c) 14%, transparent); border-color: color-mix(in srgb, var(--c) 45%, transparent); }
-.parts i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
-.parts span { font-weight: 500; font-size: 13.5px; }
-.parts em { font: 400 11px/1 var(--mono); font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; }
-.parts .group { font: 500 9.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); padding: 10px 10px 4px; }
-.detail h3 { margin: 6px 0 8px; font: 800 32px/0.95 var(--display); text-transform: uppercase; letter-spacing: 0.02em; color: var(--c, var(--ink)); text-wrap: balance; }
-.detail .lede { margin: 0 0 12px; font-size: 15px; line-height: 1.5; }
-.detail p { margin: 0 0 10px; color: #c3cfdb; max-width: 62ch; }
-.specs { margin: 14px 0 0; display: grid; border-top: 1px solid var(--line); }
-.specs div { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-.specs dt { color: var(--muted); font-size: 12.5px; }
-.specs dd { margin: 0; font: 500 12.5px/1.4 var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
-.specs dd.live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--heat); margin-right: 7px; vertical-align: 1px; box-shadow: 0 0 8px var(--heat); }
-.flyhint { margin: 12px 0 0; font: 400 11.5px/1.4 var(--mono); color: var(--faint); }
-details.notes summary { cursor: pointer; font: 600 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
-details.notes summary:hover { color: var(--ink); }
-details.notes ul { margin: 12px 0 0; padding-left: 18px; color: var(--muted); font-size: 12.5px; display: grid; gap: 8px; }
+details.notes { margin-top: 14px; }
+details.notes summary { cursor: pointer; font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+details.notes ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 12.5px; display: grid; gap: 8px; }
 details.notes a { color: var(--cold); }
-.foot { margin: auto 0 0; padding: 14px 18px 16px; color: var(--faint); font-size: 11.5px; }
 
-@media (max-width: 1180px) { :root { --panel-w: 320px; } .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* ---------- intensity console ---------- */
+.dock { position: absolute; left: calc(var(--lesson-w) + var(--g) * 2); right: var(--g); bottom: var(--g); display: flex; justify-content: center; pointer-events: none; }
+.console { pointer-events: auto; width: min(100%, 860px); padding: 16px 20px 14px; display: grid; gap: 12px; }
+.c-head { display: flex; align-items: center; gap: 18px; }
+.c-cat { display: flex; align-items: center; gap: 14px; margin-right: auto; min-width: 0; }
+.c-badge { --cc: #ff8f20; display: grid; place-items: center; min-width: 54px; height: 54px; padding: 0 10px; border-radius: 12px; background: var(--cc); color: #0a0e13; font: 700 34px/1 var(--display); box-shadow: 0 0 34px -4px color-mix(in srgb, var(--cc) 70%, transparent); transition: background .4s, box-shadow .4s; }
+.c-badge.bump { animation: bump .55s ease; }
+@keyframes bump { 40% { transform: scale(1.14); } }
+.c-cat strong { display: block; font: 700 25px/1 var(--display); letter-spacing: 0.03em; text-transform: uppercase; }
+.c-cat div span { display: block; margin-top: 4px; color: var(--muted); font-size: 12.5px; }
+.c-wind { display: grid; grid-template-columns: auto auto; column-gap: 8px; align-items: baseline; }
+.c-wind b { grid-row: span 2; font: 600 44px/0.9 var(--display); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.c-wind span { font: 500 10.5px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.c-wind small { font: 400 11px/1.2 var(--mono); color: var(--faint); }
+.grow { flex: none; border: 1px solid var(--hair-2); background: rgba(255,255,255,0.06); border-radius: 999px; padding: 11px 16px; cursor: pointer; font: 500 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+.grow:hover, .grow[aria-pressed="true"] { border-color: var(--heat); color: var(--heat); }
+.c-track { position: relative; padding-bottom: 22px; }
+#kt { width: 100%; margin: 0; height: 28px; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; --thumb: #ff8f20; }
+#kt::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--track); }
+#kt::-moz-range-track { height: 8px; border-radius: 4px; background: var(--track); }
+#kt::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -7px; border-radius: 50%; background: #fff; border: 4px solid var(--thumb); box-shadow: 0 0 0 4px rgba(0,0,0,0.35), 0 0 22px var(--thumb); }
+#kt::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 4px solid var(--thumb); box-shadow: 0 0 0 4px rgba(0,0,0,0.35), 0 0 22px var(--thumb); }
+.c-ticks { position: absolute; left: 11px; right: 11px; bottom: 0; height: 18px; }
+.c-ticks button { position: absolute; transform: translateX(-50%); border: 0; background: transparent; padding: 2px 6px; cursor: pointer; font: 600 13px/1 var(--display); letter-spacing: 0.06em; color: var(--faint); }
+.c-ticks button:hover { color: var(--ink); }
+.c-ticks button[aria-pressed="true"] { color: var(--ink); }
+.c-stats { margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--hair); padding-top: 10px; }
+.c-stats div { padding: 0 12px; border-left: 1px solid var(--hair); min-width: 0; }
+.c-stats div:first-child { border-left: 0; padding-left: 0; }
+.c-stats dt { font: 500 9.5px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+.c-stats dd { margin: 3px 0 0; font: 500 16px/1.1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.c-stats dd small { font-size: 11px; color: var(--muted); }
+.c-stats p { margin: 3px 0 0; font-size: 11px; line-height: 1.3; color: var(--faint); }
+.c-stats .hot dd { color: var(--heat); }
+.c-more { justify-self: start; border: 0; background: transparent; padding: 2px 0; cursor: pointer; font: 500 10.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.c-more::before { content: "+ "; }
+.c-more[aria-expanded="true"]::before { content: "− "; }
+.c-more:hover { color: var(--ink); }
+.c-drawer { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 22px; padding-top: 4px; }
+.ctl { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: baseline; }
+.ctl label { font-weight: 500; font-size: 13px; }
+.ctl output { font: 500 12.5px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.ctl small { grid-column: 1 / -1; color: var(--faint); font-size: 11.5px; line-height: 1.35; }
+.ctl input { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; height: 20px; background: transparent; -webkit-appearance: none; appearance: none; --a: #3a4a5c; --b: #c7d3df; }
+.ctl input::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--a), var(--b)); }
+.ctl input::-moz-range-track { height: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--a), var(--b)); }
+.ctl input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5.5px; border-radius: 50%; background: var(--ink); border: 3px solid #0a121c; cursor: pointer; }
+.ctl input::-moz-range-thumb { width: 9px; height: 9px; border-radius: 50%; background: var(--ink); border: 3px solid #0a121c; cursor: pointer; }
+#sst { --a: #2b5f8f; --b: var(--heat); }
+#tout { --a: var(--cold); --b: #45506a; }
+.presets { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button { border: 1px solid var(--hair-2); background: transparent; border-radius: 999px; padding: 5px 10px; font: 400 12px/1 var(--body); color: var(--muted); cursor: pointer; }
+.presets button:hover { color: var(--ink); border-color: var(--muted); }
+
+/* ---------- callout labels ---------- */
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.co { position: absolute; left: 0; top: 0; width: 0; height: 0; transition: opacity .35s; }
+.co .pt { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(0,0,0,0.35), 0 0 10px rgba(255,255,255,0.6); }
+.co .ln { position: absolute; left: 0; bottom: 6px; width: 1px; height: 34px; background: linear-gradient(to top, rgba(255,255,255,0.9), rgba(255,255,255,0.35)); }
+.co .tx { position: absolute; left: -1px; bottom: 40px; padding: 0 0 5px 0; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.35); font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: #fff; text-shadow: 0 1px 10px rgba(0,0,0,0.9); pointer-events: auto; cursor: pointer; background: none; border-top: 0; border-left: 0; border-right: 0; }
+.co .tx b { color: var(--c, var(--heat)); font-weight: 500; margin-right: 6px; }
+.co.on .pt { background: var(--c, var(--heat)); box-shadow: 0 0 0 3px rgba(0,0,0,0.35), 0 0 14px var(--c, var(--heat)); }
+.co.on .tx { color: var(--c, var(--heat)); border-bottom-color: var(--c, var(--heat)); }
+.co.static .tx { cursor: default; }
+
+.probe { position: absolute; left: 0; top: 0; pointer-events: none; padding: 10px 12px; min-width: 196px; border-radius: 10px; background: var(--glass-2); border: 1px solid var(--hair-2); font: 400 11.5px/1.55 var(--mono); transition: opacity .15s; }
+.probe b { display: block; font: 500 10px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.probe div { display: flex; justify-content: space-between; gap: 14px; font-variant-numeric: tabular-nums; }
+.probe span { color: var(--faint); }
+.probe .zone { color: var(--ink); margin-top: 4px; }
+
+.irkey { position: absolute; right: var(--g); top: 70px; width: 260px; padding: 10px 12px 4px; pointer-events: none; }
+.irkey .bar { height: 8px; border-radius: 2px; background: linear-gradient(90deg, #121418 0%, #6b7078 34.8%, #c8ccd0 52.2%, #3fa7ff 60.9%, #2fd17a 69.6%, #f5e04a 76.5%, #ff8a2a 82.6%, #e0243a 88.7%, #6d0f3c 93.9%, #ffffff 100%); }
+.irkey .ticks { position: relative; height: 16px; font: 400 10px/16px var(--mono); color: var(--muted); }
+.irkey .ticks span { position: absolute; transform: translateX(-50%); }
+.irkey .ticks span:first-child { transform: none; } .irkey .ticks span:last-child { transform: translateX(-100%); }
+.irkey .cap { margin-bottom: 6px; }
+
+@media (prefers-reduced-motion: reduce) { .c-badge.bump { animation: none; } .co { transition: none; } }
+@media (max-width: 1180px) { :root { --lesson-w: 330px; } .c-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 10px; } .c-stats div:nth-child(4) { border-left: 0; padding-left: 0; } }
 @media (max-width: 900px) {
   body { overflow: auto; }
   html, body { height: auto; }
-  .app { position: static; display: grid; gap: 12px; padding: 0 12px 16px; }
-  .stage { position: relative; height: 68svh; min-height: 440px; margin: 0 -12px; }
-  .panel, .deck { position: static; width: auto; }
-  .deck { grid-template-columns: minmax(0, 1fr); }
-  .controls { border-right: 0; border-bottom: 1px solid var(--line); }
-  .masthead { left: 16px; top: 64px; }
-  .masthead p { display: none; }
-  .viewbar { left: 16px; right: 16px; top: 12px; align-items: flex-start; }
-  .viewrow { justify-content: flex-start; }
-  .hint { left: 16px; bottom: 12px; }
-  .irkey { right: 16px; bottom: 34px; width: min(260px, calc(100% - 32px)); }
-  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .scale { flex-wrap: wrap; }
-  .segs { order: 3; flex-basis: 100%; }
+  .app { position: static; display: grid; gap: 12px; padding: 0 12px 20px; }
+  .stage { position: relative; height: 64svh; min-height: 440px; margin: 0 -12px; }
+  .topbar { position: absolute; top: 10px; left: 12px; right: 12px; flex-wrap: wrap; gap: 8px; }
+  .brand { width: 100%; }
+  .tools { margin-left: auto; }
+  .lesson, .dock { position: static; width: auto; }
+  .dock { display: block; }
+  .console { width: 100%; order: -1; }
+  .c-head { flex-wrap: wrap; gap: 12px; }
+  .c-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 10px; }
+  .c-stats div { border-left: 0 !important; padding-left: 0 !important; }
+  .c-drawer { grid-template-columns: minmax(0, 1fr); }
+  .irkey { top: auto; bottom: 12px; right: 12px; }
 }
 </style>
 </head>
 <body>
 <div class="app">
   <main class="stage" id="stage">
-    <canvas id="gl" aria-label="3D model of a hurricane. Drag to orbit, scroll to zoom, hover the sea to probe it."></canvas>
+    <canvas id="gl" aria-label="3D hurricane over the ocean. Drag to orbit, scroll to zoom, hover the sea to probe it."></canvas>
     <div class="labels" id="labels"></div>
     <div class="probe" id="probe" style="opacity:0" aria-hidden="true"></div>
-    <div class="masthead">
-      <h1>Hurricane <span>Heat Engine</span></h1>
-      <p>A hurricane turns warm seawater into wind. Slice it open, pick any part, fly into the eye, and change the ocean below it.</p>
-    </div>
-    <div class="viewbar" role="toolbar" aria-label="View options">
-      <div class="viewrow">
-        <div class="seg glass" id="viewSeg">
-          <button type="button" id="v-whole" data-view="whole" aria-pressed="false">Whole</button>
-          <button type="button" id="v-cut" data-view="cutaway" aria-pressed="true">Sliced</button>
-          <button type="button" id="v-exp" data-view="exploded" aria-pressed="false">Exploded</button>
-        </div>
-        <div class="seg glass" id="imgSeg">
-          <button type="button" id="i-vis" data-img="visible" aria-pressed="true">Visible</button>
-          <button type="button" id="i-ir" data-img="ir" aria-pressed="false">Infrared</button>
-        </div>
-        <div class="seg glass">
-          <button type="button" id="flowBtn" aria-pressed="true">Airflow</button>
-          <button type="button" id="hdBtn" aria-pressed="true" title="High-definition rendering">HD</button>
-          <button type="button" id="resetBtn" aria-pressed="false">Reset view</button>
-        </div>
-      </div>
-      <label class="opening glass" id="openingBox" for="opening">Slice <input type="range" id="opening" min="20" max="200" step="1" value="140"><output id="openingOut" for="opening">140°</output></label>
-    </div>
     <div class="irkey glass" id="irkey" hidden>
-      <div class="cap">Cloud-top temperature, °C</div>
+      <div class="cap eyebrow">Cloud-top temperature, °C</div>
       <div class="bar"></div>
       <div class="ticks"><span style="left:0%">+30</span><span style="left:34.8%">−10</span><span style="left:60.9%">−40</span><span style="left:82.6%">−65</span><span style="left:100%">−85</span></div>
     </div>
-    <p class="hint" id="hint">Drag to orbit · Scroll to zoom · Hover the sea to probe · Height ×8</p>
+    <header class="topbar">
+      <div class="brand"><span class="mark" aria-hidden="true"></span><div><strong>Hurricane Heat Engine</strong><span>Interactive field guide</span></div></div>
+      <nav class="tabs" aria-label="View">
+        <div class="tabset" id="viewSeg">
+          <button type="button" data-view="whole" aria-pressed="true">Whole</button>
+          <button type="button" data-view="cutaway" aria-pressed="false">Sliced</button>
+          <button type="button" data-view="exploded" aria-pressed="false">Exploded</button>
+        </div>
+        <div class="tabset" id="imgSeg">
+          <button type="button" data-img="visible" aria-pressed="true">Visible</button>
+          <button type="button" data-img="ir" aria-pressed="false">Infrared</button>
+        </div>
+      </nav>
+      <div class="tools">
+        <button type="button" id="flowBtn" aria-pressed="false" title="Show the airflow through the storm">Airflow</button>
+        <button type="button" id="hdBtn" aria-pressed="true" title="High-definition rendering">HD</button>
+        <button type="button" id="resetBtn" aria-pressed="false">Reset view</button>
+      </div>
+    </header>
   </main>
 
-  <section class="deck glass" id="deck" aria-label="Storm power">
-    <div class="scale">
-      <h2>Strength <span style="color:var(--faint)">· wind kt</span></h2>
-      <div class="segs" id="segs" role="group" aria-label="Saffir–Simpson category"></div>
-      <button type="button" class="grow" id="growBtn" aria-pressed="false">▶ Grow it</button>
-    </div>
-    <div class="controls">
-      <h2>Set the conditions</h2>
-      <div class="ctl">
-        <label for="sst">Sea surface temperature</label><output id="sstOut" for="sst">29.5 °C</output>
-        <input type="range" id="sst" min="24" max="32" step="0.1" value="29.5">
-        <small>The fuel. Below about 26.5 °C a hurricane can't sustain itself.</small>
-      </div>
-      <div class="ctl">
-        <label for="tout">Outflow temperature</label><output id="toutOut" for="tout">−75 °C</output>
-        <input type="range" id="tout" min="-85" max="-55" step="1" value="-75">
-      </div>
-      <div class="ctl">
-        <label for="shear">Vertical wind shear</label><output id="shearOut" for="shear">12 kt</output>
-        <input type="range" id="shear" min="0" max="40" step="1" value="12">
-      </div>
-      <div class="presets" aria-label="Example conditions">
-        <button type="button" data-p="29.5,-75,12">Typical</button>
-        <button type="button" data-p="31,-80,5">Gulf in August</button>
-        <button type="button" data-p="32,-84,2">Record-warm sea</button>
-        <button type="button" data-p="26.3,-70,10">Cool water</button>
-        <button type="button" data-p="29.5,-75,30">Strong shear</button>
-      </div>
-    </div>
-    <div class="readout" aria-live="polite">
-      <h2>What the engine produces</h2>
-      <div class="verdict">
-        <div class="cat" id="catChip">4</div>
-        <div class="what"><strong id="catName">Category 4 hurricane</strong><span id="catNote">Saffir–Simpson scale</span></div>
-      </div>
-      <dl class="stats">
-        <div class="stat"><dt>Max sustained wind</dt><dd id="rWind">—</dd><p id="rWind2"></p></div>
-        <div class="stat"><dt>Central pressure</dt><dd id="rPres">—</dd><p id="rPres2"></p></div>
-        <div class="stat"><dt>Engine efficiency</dt><dd id="rEff">—</dd><p>Carnot limit, sea to outflow</p></div>
-        <div class="stat hot"><dt>Heat released</dt><dd id="rHeat">—</dd><p id="rHeat2"></p></div>
-        <div class="stat"><dt>Wind power</dt><dd id="rKin">—</dd><p id="rKin2"></p></div>
-        <div class="stat"><dt>Typical surge</dt><dd id="rSurge">—</dd><p id="rSurge2"></p></div>
-      </dl>
-    </div>
-  </section>
+  <aside class="lesson glass" id="lesson" aria-live="polite" aria-label="Guided lesson"></aside>
 
-  <aside class="panel glass" aria-label="Parts of a hurricane">
-    <section>
-      <h2>Every part</h2>
-      <ul class="parts" id="parts"></ul>
+  <div class="dock">
+    <section class="console glass" id="console" aria-label="Storm intensity">
+      <div class="c-head">
+        <div class="c-cat"><span class="c-badge" id="catChip">4</span><div><strong id="catName">Category 4</strong><span id="catSub">Major hurricane</span></div></div>
+        <div class="c-wind"><b id="rWind">124</b><span>kt sustained</span><small id="rWind2">143 mph · 230 km/h</small></div>
+        <button type="button" class="grow" id="growBtn" aria-pressed="false">▶ Grow it</button>
+      </div>
+      <div class="c-track">
+        <input type="range" id="kt" min="15" max="165" step="1" value="124" aria-label="Storm intensity, maximum sustained wind in knots">
+        <div class="c-ticks" id="ticks"></div>
+      </div>
+      <dl class="c-stats">
+        <div><dt>Pressure</dt><dd id="rPres">—</dd><p id="rPres2"></p></div>
+        <div><dt>Eye</dt><dd id="rEye">—</dd><p id="rEye2"></p></div>
+        <div class="hot"><dt>Heat released</dt><dd id="rHeat">—</dd><p id="rHeat2"></p></div>
+        <div><dt>Wind power</dt><dd id="rKin">—</dd><p id="rKin2"></p></div>
+        <div><dt>Typical surge</dt><dd id="rSurge">—</dd><p id="rSurge2"></p></div>
+      </dl>
+      <button type="button" class="c-more" id="moreBtn" aria-expanded="false" aria-controls="drawer">Ocean and atmosphere</button>
+      <div class="c-drawer" id="drawer" hidden>
+        <div class="ctl">
+          <label for="sst">Sea surface temperature</label><output id="sstOut" for="sst">30.0 °C</output>
+          <input type="range" id="sst" min="24" max="32" step="0.1" value="30">
+          <small>The fuel. Below about 26.5 °C a hurricane can’t sustain itself.</small>
+        </div>
+        <div class="ctl">
+          <label for="tout">Outflow temperature</label><output id="toutOut" for="tout">−75 °C</output>
+          <input type="range" id="tout" min="-85" max="-55" step="1" value="-75">
+          <small>The exhaust. Colder exhaust makes a more efficient engine.</small>
+        </div>
+        <div class="ctl">
+          <label for="shear">Vertical wind shear</label><output id="shearOut" for="shear">11 kt</output>
+          <input type="range" id="shear" min="0" max="40" step="1" value="11">
+          <small>Winds changing with height tilt the storm and tear its top off.</small>
+        </div>
+        <div class="ctl">
+          <label for="opening">Slice angle</label><output id="openingOut" for="opening">140°</output>
+          <input type="range" id="opening" min="20" max="200" step="1" value="140">
+        </div>
+        <div class="presets" aria-label="Example conditions">
+          <button type="button" data-p="29.5,-75,12">Typical</button>
+          <button type="button" data-p="31,-80,5">Gulf in August</button>
+          <button type="button" data-p="32,-84,2">Record-warm sea</button>
+          <button type="button" data-p="26.3,-70,10">Cool water</button>
+          <button type="button" data-p="29.5,-75,30">Strong shear</button>
+        </div>
+      </div>
     </section>
-    <section class="detail" id="detail" aria-live="polite"></section>
-    <section>
-      <details class="notes">
-        <summary>How the numbers work</summary>
-        <ul>
-          <li><b>Potential intensity</b> follows Emanuel’s heat-engine theory (Emanuel 1986; Bister &amp; Emanuel 1998): V² = (C<sub>k</sub>/C<sub>d</sub>) · (T<sub>s</sub> − T<sub>o</sub>)/T<sub>o</sub> · Δk, with C<sub>k</sub>/C<sub>d</sub> = 0.9, near-surface air at 80% humidity and 1 °C cooler than the sea, and a 0.8 reduction from gradient-level to 10 m wind.</li>
-          <li><b>Realized intensity</b> scales potential intensity down with a ramp from 25.5 to 27.5 °C and a wind-shear penalty above 8 kt. Both factors are illustrative, not a forecast model.</li>
-          <li><b>Central pressure</b> uses the Atkinson–Holliday (1977) wind–pressure relation. The probe uses a Holland (1980) pressure and wind profile.</li>
-          <li><b>Heat released</b> scales NOAA HRD’s estimate (1.5 cm/day of rain over a 665 km radius ≈ 6 × 10¹⁴ W) by about 7% per °C of sea temperature and by storm strength. World electricity is taken as ~3.5 TW average (≈ 30,000 TWh in 2024). A Hiroshima bomb is ~6.3 × 10¹³ J.</li>
-          <li><b>Wind power</b> integrates ρ·C<sub>d</sub>·V³ over a Holland wind profile out to 500 km.</li>
-          <li><b>Surge</b> ranges are the historical Saffir–Simpson values. The NHC dropped them from the scale in 2010 because real surge depends heavily on coastline shape and depth.</li>
-          <li>Sources: <a href="https://www.aoml.noaa.gov/hrd-faq/" target="_blank" rel="noopener">NOAA HRD hurricane FAQ</a>, <a href="https://www.nhc.noaa.gov/aboutsshws.php" target="_blank" rel="noopener">NHC Saffir–Simpson scale</a>, <a href="https://emanuel.mit.edu/limits-hurricane-intensity" target="_blank" rel="noopener">Emanuel, limits on hurricane intensity</a>.</li>
-        </ul>
-      </details>
-    </section>
-    <p class="foot">Northern Hemisphere storm moving north at 10 kt. Horizontal scale is true, with range rings every 100 km. Heights are exaggerated 8×.</p>
-  </aside>
+  </div>
 </div>
 
 <script type="importmap">
@@ -564,16 +566,20 @@ const CAT_ROWS = CATS.map(c => {
   return { c, m, r64: radiusOf(m, 64) };
 });
 
+
 /* =====================================================================
    State
    ===================================================================== */
-const state = { sst: 29.5, tout: -75, shear: 12, view: 'cutaway', img: 'visible', flow: true, focus: 'engine', opening: 140 };
+const TOUR = ['overview', 'engine', 'ocean', 'inflow', 'eyewall', 'eye', 'rainbands', 'canopy', 'wind', 'surge', 'coriolis', 'category'];
+const state = { sst: 30, tout: -75, shear: 11, view: 'whole', img: 'visible', flow: false, focus: 'overview', opening: 140 };
+Object.assign(state, conditionsFor(124));
 let M = model(state.sst, state.tout, state.shear);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = (id) => document.getElementById(id);
+const lin = (hex) => new THREE.Color(hex).convertSRGBToLinear();
 
 /* =====================================================================
-   Renderer, camera, passes
+   Renderer, camera
    ===================================================================== */
 THREE.ColorManagement.enabled = false;
 const stage = $('stage');
@@ -581,81 +587,66 @@ const canvas = $('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 const QUALITY = {
-  hd:   { dpr: Math.min(devicePixelRatio || 1, 2), scale: 0.75, min: 0.5, max: 1.0, steps: 110, samples: 4, hd: 1 },
-  fast: { dpr: 1, scale: 0.45, min: 0.3, max: 0.5, steps: 64, samples: 0, hd: 0 },
+  hd:   { dpr: Math.min(devicePixelRatio || 1, 2), scale: 0.72, min: 0.5, max: 1.0, steps: 104, samples: 4, hd: 1 },
+  fast: { dpr: 1, scale: 0.45, min: 0.3, max: 0.5, steps: 60, samples: 0, hd: 0 },
 };
 let Q = QUALITY.hd;
 renderer.setPixelRatio(Q.dpr);
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(36, 1, 0.3, 1400);
-const HOME = { pos: new THREE.Vector3(48, 50, 122), target: new THREE.Vector3(0, 3, 0) };
+const camera = new THREE.PerspectiveCamera(40, 1, 0.3, 5000);
+const HOME = { pos: new THREE.Vector3(50, 17, 82), target: new THREE.Vector3(0, 6, 0) };
 camera.position.copy(HOME.pos);
 const controls = new OrbitControls(camera, canvas);
 controls.target.copy(HOME.target);
 controls.enableDamping = true;
-controls.dampingFactor = 0.07;
+controls.dampingFactor = 0.06;
 controls.minDistance = 24;
-controls.maxDistance = 280;
-controls.maxPolarAngle = Math.PI * 0.485;
+controls.maxDistance = 320;
+controls.maxPolarAngle = Math.PI * 0.487;
 controls.enablePan = false;
-controls.rotateSpeed = 0.7;
+controls.rotateSpeed = 0.6;
 
 const KM = 10, VX = 8;
 const zUnits = (km) => km * VX / KM;
-const SUN = new THREE.Vector3(0.62, 0.66, 0.42).normalize();
+const SUN = new THREE.Vector3(0.86, 0.3, 0.18).normalize();
 
-// Shared uniforms for every storm shader
 const U = {
   uTime: { value: 0 }, uRm: { value: 3.5 }, uTop: { value: 12.8 }, uTilt: { value: 0 }, uShear: { value: 0 },
-  uEyeFill: { value: 0 }, uCutC: { value: -Math.PI / 2 }, uCutW: { value: 1.2 }, uIR: { value: 0 },
-  uSST: { value: 29.5 }, uTout: { value: -75 }, uSpin: { value: 0.5 }, uBandR: { value: 42 }, uVm: { value: 60 },
-  uOffCan: { value: 0 }, uOffBand: { value: 0 }, uOceanY: { value: 0 }, uExplode: { value: 0 }, uOrg: { value: 0.8 },
+  uEyeFill: { value: 0 }, uCutC: { value: -Math.PI / 2 }, uCutW: { value: 0 }, uIR: { value: 0 },
+  uSST: { value: 30 }, uTout: { value: -75 }, uBandR: { value: 42 }, uVm: { value: 60 }, uOrg: { value: 0.8 },
+  uOffCan: { value: 0 }, uOffBand: { value: 0 }, uOceanY: { value: 0 }, uExplode: { value: 0 },
+  uRot: { value: 0 }, uA0: { value: 0 }, uA1: { value: 0 }, uPh: { value: 0 },
   uDimC: { value: [1, 1, 1, 1] }, uHiC: { value: [0, 0, 0, 0] },
-  uSun: { value: SUN }, uNoise: { value: null },
-  uSurge: { value: 0 }, uWindOn: { value: 0 }, uSurgeOn: { value: 0 },
-  uSeg: { value: new THREE.Vector4(1, 1, 1, 1) }, uFlowVis: { value: 1 }, uEngine: { value: 1 },
+  uSun: { value: SUN }, uSunCol: { value: new THREE.Vector3(1.0, 0.84, 0.64).multiplyScalar(3.1) },
+  uFogCol: { value: new THREE.Vector3(0.34, 0.41, 0.52) }, uFogD: { value: 0.0021 },
+  uFlash: { value: new THREE.Vector4(0, 0, 0, 0) }, uNoise: { value: null },
+  uSurge: { value: 0 }, uWindOn: { value: 0 }, uSurgeOn: { value: 0 }, uRings: { value: 0 },
+  uSeg: { value: new THREE.Vector4(1, 1, 1, 1) }, uFlowVis: { value: 0 }, uEngine: { value: 0 },
 };
 
-/* ---------- tileable 3D cloud noise (Perlin-ish value fbm × inverted Worley) ---------- */
+/* ---------- CPU noise fallback (64³) ---------- */
 function makeNoiseTexture(N = 64) {
   let seed = 7;
   const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-  const worleyPts = (F) => { const a = new Float32Array(F * F * F * 3); for (let i = 0; i < a.length; i++) a[i] = rnd(); return a; };
-  const W = [[4, worleyPts(4)], [8, worleyPts(8)], [16, worleyPts(16)]];
-  const worley = (x, y, z, F, pts) => {
-    const fx = x * F, fy = y * F, fz = z * F;
-    const ix = Math.floor(fx), iy = Math.floor(fy), iz = Math.floor(fz);
+  const pts = (F) => { const a = new Float32Array(F * F * F * 3); for (let i = 0; i < a.length; i++) a[i] = rnd(); return a; };
+  const W = [[4, pts(4)], [8, pts(8)], [16, pts(16)]];
+  const worley = (x, y, z, F, P) => {
+    const fx = x * F, fy = y * F, fz = z * F, ix = Math.floor(fx), iy = Math.floor(fy), iz = Math.floor(fz);
     let md = 9;
     for (let dz = -1; dz <= 1; dz++) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
       const cx = ix + dx, cy = iy + dy, cz = iz + dz;
-      const wx = (cx % F + F) % F, wy = (cy % F + F) % F, wz = (cz % F + F) % F;
-      const k = ((wz * F + wy) * F + wx) * 3;
-      const px = cx + pts[k] - fx, py = cy + pts[k + 1] - fy, pz = cz + pts[k + 2] - fz;
-      const d = px * px + py * py + pz * pz;
-      if (d < md) md = d;
+      const k = ((((cz % F) + F) % F * F + ((cy % F) + F) % F) * F + ((cx % F) + F) % F) * 3;
+      const px = cx + P[k] - fx, py = cy + P[k + 1] - fy, pz = cz + P[k + 2] - fz;
+      md = Math.min(md, px * px + py * py + pz * pz);
     }
     return Math.sqrt(md);
-  };
-  const lat = (G) => { const a = new Float32Array(G * G * G); for (let i = 0; i < a.length; i++) a[i] = rnd(); return a; };
-  const V = [[4, lat(4)], [8, lat(8)], [16, lat(16)]];
-  const sm = (t) => t * t * (3 - 2 * t);
-  const value = (x, y, z, G, L) => {
-    const fx = x * G, fy = y * G, fz = z * G;
-    const ix = Math.floor(fx), iy = Math.floor(fy), iz = Math.floor(fz);
-    const tx = sm(fx - ix), ty = sm(fy - iy), tz = sm(fz - iz);
-    const g = (a, b, c) => L[(((c % G + G) % G) * G + ((b % G + G) % G)) * G + ((a % G + G) % G)];
-    const l = (a, b, t) => a + (b - a) * t;
-    return l(l(l(g(ix, iy, iz), g(ix + 1, iy, iz), tx), l(g(ix, iy + 1, iz), g(ix + 1, iy + 1, iz), tx), ty),
-             l(l(g(ix, iy, iz + 1), g(ix + 1, iy, iz + 1), tx), l(g(ix, iy + 1, iz + 1), g(ix + 1, iy + 1, iz + 1), tx), ty), tz);
   };
   const data = new Uint8Array(N * N * N);
   for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const u = x / N, v = y / N, w = z / N;
-    const pv = value(u, v, w, V[0][0], V[0][1]) * 0.55 + value(u, v, w, V[1][0], V[1][1]) * 0.3 + value(u, v, w, V[2][0], V[2][1]) * 0.15;
     const wo = 1 - (worley(u, v, w, W[0][0], W[0][1]) * 0.6 + worley(u, v, w, W[1][0], W[1][1]) * 0.28 + worley(u, v, w, W[2][0], W[2][1]) * 0.12);
-    const n = Math.min(1, Math.max(0, wo * 0.62 + pv * 0.48 - 0.05));
-    data[(z * N + y) * N + x] = Math.round(n * 255);
+    data[(z * N + y) * N + x] = Math.round(Math.min(1, Math.max(0, wo * 0.62 + 0.24 - 0.05)) * 255);
   }
   const tex = new THREE.Data3DTexture(data, N, N, N);
   tex.format = THREE.RedFormat;
@@ -666,13 +657,16 @@ function makeNoiseTexture(N = 64) {
   return tex;
 }
 
-/* ---------- GLSL shared by clouds and ocean ---------- */
+/* =====================================================================
+   GLSL shared by every storm shader
+   ===================================================================== */
 const STORM_GLSL = /* glsl */`
   precision highp sampler3D;
-  uniform float uTime, uRm, uTop, uTilt, uShear, uEyeFill, uCutC, uCutW, uIR, uSST, uTout, uSpin, uBandR, uVm;
-  uniform float uOffCan, uOffBand, uOceanY, uExplode, uOrg;
+  uniform float uTime, uRm, uTop, uTilt, uShear, uEyeFill, uCutC, uCutW, uIR, uSST, uTout, uBandR, uVm, uOrg;
+  uniform float uOffCan, uOffBand, uOceanY, uExplode, uRot, uA0, uA1, uPh, uFogD;
   uniform float uDimC[4]; uniform float uHiC[4];
-  uniform vec3 uSun;
+  uniform vec3 uSun, uSunCol, uFogCol;
+  uniform vec4 uFlash;
   uniform sampler3D uNoise;
   const float PI = 3.14159265;
   float ramp(float a, float b, float t) { return clamp((t - a) / (b - a), 0.0, 1.0); }
@@ -688,59 +682,65 @@ const STORM_GLSL = /* glsl */`
     c = mix(c, vec3(0.88, 0.14, 0.23), ramp(-65.0, -72.0, t));
     c = mix(c, vec3(0.43, 0.06, 0.24), ramp(-72.0, -78.0, t));
     c = mix(c, vec3(1.00, 1.00, 1.00), ramp(-78.0, -85.0, t));
-    return c;
+    return pow(c, vec3(2.2)) * 1.6;
   }
-  // Component densities before noise: x eyewall, y rainbands, z canopy, w eye
-  vec4 stormShape(vec3 p, out float r, out float th) {
+  vec3 fogColor(vec3 dir) {
+    float s = max(dot(dir, uSun), 0.0);
+    return uFogCol + vec3(1.0, 0.6, 0.32) * (pow(s, 5.0) * 0.5 + pow(s, 40.0) * 1.1);
+  }
+  // Where each part of the storm is, before any fine texture. x eyewall, y bands, z canopy, w eye
+  vec4 envelope(vec3 p, out float r, out float th, out float rain) {
     float y = p.y;
     vec2 q = vec2(p.x - uTilt * y, p.z);
     r = length(q);
     th = atan(-q.y, q.x);
-    float yN = y / uTop;
-    // eyewall: a sloping ring of towers (the stadium)
-    float rEW = uRm * (1.0 + 0.62 * pow(clamp(yN, 0.0, 1.0), 1.6));
-    float wEW = uRm * 0.30 + 0.3;
-    float dr = (r - rEW) / wEW;
-    float ew = exp(-dr * dr) * smoothstep(0.0, 0.05, yN) * (1.0 - smoothstep(0.84, 0.97, yN));
-    ew *= mix(0.15, 1.0, smoothstep(0.12, 0.5, uOrg));   // weak storms have no closed eyewall
-    // eye: shallow low cloud, filled completely in weak storms
-    float eyeIn = 1.0 - smoothstep(uRm * 0.75, uRm * 1.05, r);
-    float eye = eyeIn * max(0.5 * (1.0 - smoothstep(0.25, 1.1, y)), uEyeFill * (1.0 - smoothstep(0.75, 0.95, yN)));
-    // spiral rainbands
+    float yN = clamp(y / uTop, 0.0, 1.2);
+    // the eye widens with height, giving the stadium shape
+    float rEye = uRm * (0.78 + 0.72 * pow(yN, 1.5));
+    float wEW = uRm * 0.42 + 0.5;
+    float dr = (r - rEye - wEW * 0.9) / wEW;
+    float ew = exp(-dr * dr) * smoothstep(0.02, 0.08, yN) * (1.0 - smoothstep(0.86, 0.99, yN));
+    ew *= mix(0.08, 1.0, smoothstep(0.15, 0.55, uOrg));
+    // eye: a shallow deck of low cloud, filled in completely when the storm is weak
+    float inEye = 1.0 - smoothstep(rEye * 0.9, rEye * 1.25, r);
+    float eye = inEye * max(0.5 * smoothstep(0.1, 0.35, y) * (1.0 - smoothstep(0.7, 1.3, y)), uEyeFill * (1.0 - smoothstep(0.55, 0.9, yN)));
+    // outer convection: spiral bands when organised, scattered cells when weak
     float rb = max(r - uOffBand, 0.01);
-    float rIn = uRm * 2.0, rOut = uBandR * 1.02;
-    float win = smoothstep(rIn, rIn + 3.0, rb) * (1.0 - smoothstep(rOut - 7.0, rOut, rb));
-    float arm = cos(3.0 * (th + 2.4 * log(rb / uBandR) - uTime * uSpin * 0.06));
-    float band = pow(max(arm, 0.0), mix(1.2, 2.6, uOrg)) * win * mix(0.7, 1.0, uOrg);   // loose, ragged bands when weak
-    float kb = clamp((rb - rIn) / (rOut - rIn), 0.0, 1.0);
-    float hb = mix(7.4, 3.0, kb) * uTop / 12.8;
-    band *= smoothstep(0.05, 0.5, y) * (1.0 - smoothstep(hb * 0.5, hb, y));
-    band += 0.14 * win * smoothstep(0.1, 0.4, y) * (1.0 - smoothstep(0.8, 2.0, y));
-    // outflow canopy: a thin anvil sheet drooping at its edge
+    float win = smoothstep(rEye * 1.4, rEye * 2.2, rb) * (1.0 - smoothstep(uBandR * 0.78, uBandR * 1.05, rb));
+    float kb = clamp((rb - uRm * 2.0) / max(uBandR - uRm * 2.0, 1.0), 0.0, 1.0);
+    float hb = mix(8.8, 3.4, kb) * (uTop / 12.8);
+    float phi = th - uRot + 2.9 * log(rb);
+    float arms = smoothstep(0.1, 0.85, 0.5 + 0.5 * cos(3.0 * phi));
+    float band = win * mix(0.6, arms, uOrg) * smoothstep(0.3, 0.8, y) * (1.0 - smoothstep(hb * 0.45, hb, y));
+    // rain shafts under the eyewall and bands
+    rain = (1.0 - smoothstep(0.05, 0.75, y)) * (exp(-dr * dr) * mix(0.1, 1.0, uOrg) + win * mix(0.5, arms, uOrg) * 0.7);
+    // canopy: the anvil of ice cloud spreading from the top of the eyewall
     float yc = y - uOffCan;
-    float rr = r / (uBandR * 1.1 * mix(0.55, 1.0, uOrg));   // the canopy spreads as the storm strengthens
-    float cb = uTop * 0.80 - 1.4 * rr * rr;
-    float ct = uTop * 0.98 - 2.0 * rr * rr;
-    float can = smoothstep(cb, cb + 0.9, yc) * (1.0 - smoothstep(ct - 0.7, ct, yc));
-    can *= 1.0 - smoothstep(0.76, 1.02, rr);
-    can *= max(smoothstep(uRm * 1.15, uRm * 1.55, r), uEyeFill);
-    // shear: convection collapses on the upshear side
+    float Rc = uBandR * mix(0.36, 0.92, uOrg);
+    float rr = r / Rc;
+    float cb = uTop * mix(0.8, 0.64, clamp(rr, 0.0, 1.0));
+    float ct = uTop * (0.99 - 0.12 * rr * rr);
+    float can = smoothstep(cb, cb + 0.8, yc) * (1.0 - smoothstep(ct - 0.9, ct, yc)) * (1.0 - smoothstep(0.68, 1.05, rr));
+    can *= max(smoothstep(rEye * 1.0, rEye * 1.35, r), uEyeFill);
+    // shear weakens the upshear side
     float up = smoothstep(-0.8, 0.4, cos(th));
     ew *= mix(1.0, 0.25 + 0.75 * up, uShear);
-    band *= mix(1.0, 0.25 + 0.75 * up, uShear);
-    can *= mix(1.0, 0.5 + 0.5 * up, uShear);
-    // slice wedge in world angle
-    float phi = atan(-p.z, p.x);
-    float cut = uCutW < 0.002 ? 1.0 : smoothstep(uCutW - 0.01, uCutW + 0.01, angDiff(phi, uCutC));
+    band *= mix(1.0, 0.3 + 0.7 * up, uShear);
+    can *= mix(1.0, 0.45 + 0.55 * up, uShear);
+    rain *= mix(1.0, 0.3 + 0.7 * up, uShear);
+    // the slice
+    float phiW = atan(-p.z, p.x);
+    float cut = uCutW < 0.002 ? 1.0 : smoothstep(uCutW - 0.01, uCutW + 0.01, angDiff(phiW, uCutC));
+    rain *= cut * max(uDimC[0], uDimC[1]);
     return vec4(ew * uDimC[0], band * uDimC[1], can * uDimC[2], eye * uDimC[3]) * cut;
   }
-  float shapeSum(vec4 c) { return c.x * 1.5 + c.y * 1.25 + c.z * 0.75 + c.w * 0.9; }
+  float shapeSum(vec4 c) { return c.x * 1.6 + c.y * 1.2 + c.z * 0.9 + c.w * 0.9; }
   float shadowOD(vec3 p, float stepL, int n) {
-    float od = 0.0, r_, t_;
+    float od = 0.0, r_, t_, rn;
     for (int i = 1; i <= 8; i++) {
       if (i > n) break;
       vec3 q = p + uSun * stepL * float(i);
-      od += shapeSum(stormShape(q, r_, t_)) * stepL;
+      od += (shapeSum(envelope(q, r_, t_, rn)) + rn * 0.3) * stepL;
     }
     return od;
   }
@@ -751,11 +751,13 @@ const FS_VERT = /* glsl */`
   void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
 `;
 
-/* ---------- pass 2: raymarched volumetric clouds ---------- */
+/* =====================================================================
+   Volumetric clouds (GLSL3, writes colour and cloud depth)
+   ===================================================================== */
 const cloudMat = new THREE.ShaderMaterial({
   uniforms: Object.assign({
     uDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
-    uCamPos: { value: new THREE.Vector3() }, uSteps: { value: 110 }, uFrame: { value: 0 }, uHD: { value: 1 },
+    uCamPos: { value: new THREE.Vector3() }, uSteps: { value: Q.steps }, uFrame: { value: 0 }, uHD: { value: Q.hd },
   }, U),
   glslVersion: THREE.GLSL3,
   vertexShader: FS_VERT,
@@ -768,19 +770,43 @@ const cloudMat = new THREE.ShaderMaterial({
     varying vec2 vUv;
     layout(location = 0) out highp vec4 oCol;
     layout(location = 1) out highp vec4 oDep;
-    float noiseFlow(vec3 p, float r, float th, float om, float can) {
-      float P = 18.0;
-      float ph0 = fract(uTime / P), ph1 = fract(uTime / P + 0.5);
-      float w = abs(2.0 * ph0 - 1.0);
-      float a0 = th - om * ph0 * P, a1 = th - om * ph1 * P;
-      float ys = p.y * mix(0.9, 2.2, can) - uTime * 0.12 * (1.0 - can);
-      vec3 q0 = vec3(r * cos(a0), ys, r * sin(a0));
-      vec3 q1 = vec3(r * cos(a1), ys, r * sin(a1)) + vec3(3.7, 1.1, 5.3);
-      float n0 = texture(uNoise, q0 * 0.055).r * 0.62 + texture(uNoise, q0 * 0.19 + 0.3).r * 0.38;
-      float n1 = texture(uNoise, q1 * 0.055).r * 0.62 + texture(uNoise, q1 * 0.19 + 0.3).r * 0.38;
-      return mix(n0, n1, w);
-    }
     float hg(float c, float g) { float g2 = g * g; return (1.0 - g2) / pow(1.0 + g2 - 2.0 * g * c, 1.5); }
+    float density(vec3 p, out vec4 c, out float rain) {
+      float r, th;
+      c = envelope(p, r, th, rain);
+      if (shapeSum(c) < 0.01 && rain < 0.01) return 0.0;
+      float lr = log(max(r, 0.3));
+      float phi = th - uRot + 2.9 * lr;
+      // long streaks that follow the spiral
+      float sN = texture(uNoise, vec3(cos(phi) * 0.05 + 0.5, sin(phi) * 0.05 + 0.5, lr * 0.8 + p.y * 0.01)).r;
+      // scattered thunderstorm cells for weak, disorganised storms
+      float cells = smoothstep(0.46, 0.7, texture(uNoise, vec3(p.x * 0.021 + 0.13, 0.31 + p.y * 0.004, p.z * 0.021 + 0.71)).r);
+      float cl = texture(uNoise, vec3(cos(phi) * 0.22 + 0.3, sin(phi) * 0.22 + 0.6, lr * 1.3 + 0.2)).r;
+      c.y *= mix(cells * 1.35, (0.3 + 1.0 * sN) * smoothstep(0.3, 0.66, cl) * 1.5, uOrg);
+      float rrC = r / (uBandR * mix(0.36, 0.92, uOrg));
+      c.z *= (0.45 + 0.85 * sN) * (1.0 - smoothstep(0.55, 0.95, rrC + (sN - 0.5) * 0.5 + (cl - 0.5) * 0.25));
+      rain *= mix(cells, 0.5 + 0.8 * sN, uOrg);
+      float s = shapeSum(c);
+      if (s < 0.01 && rain < 0.01) return 0.0;
+      // billows advected with the local wind (two cross-faded phases avoid endless winding)
+      float fr = clamp(uRm * 1.3 / max(r, 0.5), 0.03, 1.0);
+      float a0 = th - fr * uA0, a1 = th - fr * uA1;
+      float ys = p.y * 0.85;
+      vec3 q0 = vec3(r * cos(a0), ys, r * sin(a0)) * 0.06;
+      vec3 q1 = vec3(r * cos(a1), ys, r * sin(a1)) * 0.06 + vec3(0.37, 0.11, 0.53);
+      float n0 = texture(uNoise, q0).r * 0.6 + texture(uNoise, q0 * 3.1 + 0.3).r * 0.4;
+      float n1 = texture(uNoise, q1).r * 0.6 + texture(uNoise, q1 * 3.1 + 0.3).r * 0.4;
+      float n = mix(n0, n1, uPh);
+      float canF = c.z * 0.9 / max(s, 1e-3);
+      // the canopy is fibrous cirrus: streaked along the spiral instead of billowing
+      if (canF > 0.05) {
+        float fib = texture(uNoise, vec3(cos(phi) * 0.16 + 0.2, sin(phi) * 0.16 + 0.7, lr * 2.6 + p.y * 0.03)).r;
+        n = mix(n, fib, canF * 0.7);
+      }
+      rain *= smoothstep(0.3, 0.6, n);
+      n = smoothstep(0.22, 0.82, n);
+      return clamp(min(s, 1.25) * 1.35 - (1.0 - n) * mix(1.45, 1.05, canF), 0.0, 1.0);
+    }
     vec2 slab(float o, float d, float lo, float hi) {
       if (abs(d) < 1e-5) return (o >= lo && o <= hi) ? vec2(-1e9, 1e9) : vec2(1e9, -1e9);
       float a = (lo - o) / d, b = (hi - o) / d;
@@ -801,56 +827,61 @@ const cloudMat = new THREE.ShaderMaterial({
       float dz = texture(uDepth, vUv).x;
       float sceneT = 1e9;
       if (dz < 1.0) { vec4 vp = uInvProj * vec4(ndc, dz * 2.0 - 1.0, 1.0); vp /= vp.w; sceneT = length(vp.xyz); }
-      float Rb = uBandR * 1.16 + uOffBand + abs(uTilt) * uTop + 1.0;
-      float H = uTop + uOffCan + 0.6;
+      float Rb = uBandR * 1.2 + uOffBand + abs(uTilt) * uTop + 1.0;
+      float H = uTop + uOffCan + 1.0;
       vec2 ty = slab(ro.y, rd.y, 0.0, H);
       vec2 tc = cyl(ro.xz, rd.xz, Rb);
       float t0 = max(max(ty.x, tc.x), 0.0);
       float t1 = min(min(ty.y, tc.y), sceneT);
       if (t1 <= t0) { oCol = vec4(0.0); oDep = vec4(0.0); return; }
-      float dt = max((t1 - t0) / float(uSteps), 0.2);
+      float dt = max((t1 - t0) / float(uSteps), 0.16);
       float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))) + uFrame * 0.61803398);
       float t = t0 + dt * jit;
       float T = 1.0, dAcc = 0.0, wAcc = 0.0;
       vec3 acc = vec3(0.0);
       float cosA = dot(rd, uSun);
-      float ph = mix(hg(cosA, 0.6), hg(cosA, -0.25), 0.55);
-      vec3 sunCol = vec3(1.0, 0.95, 0.86);
-      for (int i = 0; i < 160; i++) {
-        if (i >= uSteps || t > t1 || T < 0.015) break;
+      vec3 fogC = fogColor(rd);
+      vec3 skyAmb = vec3(0.30, 0.40, 0.58), gnd = vec3(0.025, 0.04, 0.065);
+      vec3 tints[4];
+      tints[0] = vec3(1.0, 0.25, 0.05); tints[1] = vec3(0.34, 0.55, 0.7); tints[2] = vec3(0.5, 0.56, 1.0); tints[3] = vec3(0.9, 0.65, 0.3);
+      for (int i = 0; i < 200; i++) {
+        if (i >= uSteps || t > t1 || T < 0.012) break;
         vec3 p = ro + rd * t;
-        float r, th;
-        vec4 c = stormShape(p, r, th);
-        float s = shapeSum(c);
-        if (s > 0.012) {
-          float can = c.z * 0.75 / s;
-          float om = uSpin * clamp(uRm * 1.2 / max(r, 0.5), 0.04, 1.2) * (1.0 - can) - 0.03 * can;
-          float n = noiseFlow(p, r, th, om, can);
-          float d = clamp(s * 1.25 - (1.0 - n) * mix(1.15, 0.75, can), 0.0, 1.0);
-          if (uHD > 0.5 && d > 0.003 && d < 0.65) {
-            // high-frequency erosion gives crisp, wispy cloud edges
-            vec3 qd = vec3(p.x + uTime * 0.05, p.y * 1.3 - uTime * 0.15, p.z) * 0.6;
-            float hn = texture(uNoise, qd).r;
-            d = clamp(d - (1.0 - hn) * 0.3 * (1.0 - d), 0.0, 1.0);
+        vec4 c; float rain;
+        float d = density(p, c, rain);
+        if (uHD > 0.5 && d > 0.003 && d < 0.85) {
+          vec3 qd = vec3(p.x + uTime * 0.05, p.y * 1.3 - uTime * 0.15, p.z) * 0.6;
+          d = clamp(d - (1.0 - texture(uNoise, qd).r) * 0.45 * (1.0 - d * 0.7), 0.0, 1.0);
+        }
+        float ext = d * 2.7 + rain * 0.8;
+        if (ext > 0.002) {
+          float od = shadowOD(p, 1.35, 6);
+          // multiple scattering, approximated with three octaves
+          float ms = 0.0, aa = 1.0, bb = 1.0, cc = 1.0;
+          for (int k = 0; k < 3; k++) {
+            ms += aa * exp(-od * 0.85 * bb) * mix(hg(cosA, 0.65 * cc), hg(cosA, -0.25 * cc), 0.45);
+            aa *= 0.55; bb *= 0.35; cc *= 0.5;
           }
-          if (d > 0.003) {
-            float od = shadowOD(p, 1.3, 5);
-            float Tl = exp(-od * 0.55);
-            float yN = clamp(p.y / uTop, 0.0, 1.2);
-            vec3 amb = mix(vec3(0.09, 0.11, 0.16), vec3(0.46, 0.53, 0.67), yN);
-            float powder = 1.0 - exp(-d * 5.0);
-            vec3 lit = sunCol * Tl * ph * 2.1 * powder + amb * (0.65 + 0.5 * Tl);
-            float yT = p.y - uOffCan * can;
-            vec3 ir = irColor(max(uSST - 6.5 * yT * 1.25, uTout - 3.0));
-            vec3 col = mix(lit, ir * 0.95, uIR);
-            float hi = (c.x * uHiC[0] * 1.5 + c.y * uHiC[1] * 1.25 + c.z * uHiC[2] * 0.75 + c.w * uHiC[3] * 0.9) / s;
-            vec3 tint = (c.x * 1.5 * vec3(1.0, 0.54, 0.24) + c.y * 1.25 * vec3(0.62, 0.76, 0.85) + c.z * 0.75 * vec3(0.73, 0.78, 1.0) + c.w * 0.9 * vec3(0.95, 0.83, 0.61)) / s;
-            col = mix(col, tint * (0.35 + 0.9 * Tl * powder), hi * 0.55);
-            float a = 1.0 - exp(-d * 2.5 * dt);
-            acc += T * a * col;
-            dAcc += T * a * t; wAcc += T * a;
-            T *= 1.0 - a;
+          float powder = 1.0 - exp(-d * 6.0);
+          float yN = clamp(p.y / uTop, 0.0, 1.2);
+          vec3 amb = mix(gnd, skyAmb, smoothstep(-0.1, 1.0, yN)) * (0.22 + 0.78 * exp(-od * 0.1));
+          float alb = mix(0.93, 0.42, clamp(rain * 0.8 / ext, 0.0, 1.0));
+          vec3 lit = alb * (uSunCol * ms * mix(0.55, 1.0, powder) + amb);
+          vec3 lf = p - uFlash.xyz;
+          lit += vec3(0.7, 0.78, 1.0) * uFlash.w * exp(-dot(lf, lf) * 0.1);
+          float s = shapeSum(c);
+          float yT = p.y - uOffCan * (c.z * 0.9 / max(s, 1e-3));
+          vec3 col = mix(lit, irColor(max(uSST - 6.5 * yT * 1.25, uTout - 3.0)), uIR);
+          if (s > 1e-3) {
+            float hi = (c.x * 1.6 * uHiC[0] + c.y * 1.2 * uHiC[1] + c.z * 0.9 * uHiC[2] + c.w * 0.9 * uHiC[3]) / s;
+            vec3 tint = (c.x * 1.6 * tints[0] + c.y * 1.2 * tints[1] + c.z * 0.9 * tints[2] + c.w * 0.9 * tints[3]) / s;
+            col = mix(col, tint * (0.6 + 2.2 * ms), hi * 0.5);
           }
+          col = mix(col, fogC, (1.0 - exp(-t * uFogD)) * (1.0 - uIR));
+          float a = 1.0 - exp(-ext * dt);
+          acc += T * a * col;
+          dAcc += T * a * t; wAcc += T * a;
+          T *= 1.0 - a;
         }
         t += dt;
       }
@@ -861,7 +892,7 @@ const cloudMat = new THREE.ShaderMaterial({
   depthTest: false, depthWrite: false, blending: THREE.NoBlending,
 });
 
-/* ---------- pass 3: composite ---------- */
+/* ---------- composite, bloom, final grade ---------- */
 const compMat = new THREE.ShaderMaterial({
   uniforms: { uScene: { value: null }, uClouds: { value: null } },
   vertexShader: FS_VERT,
@@ -869,23 +900,18 @@ const compMat = new THREE.ShaderMaterial({
     uniform sampler2D uScene, uClouds;
     varying vec2 vUv;
     void main() {
-      vec3 s = texture2D(uScene, vUv).rgb;
       vec4 c = texture2D(uClouds, vUv);
-      vec3 cc = c.a > 0.001 ? c.rgb / c.a : vec3(0.0);
-      cc = 1.0 - exp(-cc * 1.35);
-      gl_FragColor = vec4(s * (1.0 - c.a) + cc * c.a, 1.0);
+      gl_FragColor = vec4(texture2D(uScene, vUv).rgb * (1.0 - c.a) + c.rgb, 1.0);
     }
   `,
   depthTest: false, depthWrite: false,
 });
 const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const fsGeo = new THREE.PlaneGeometry(2, 2);
-const cloudScene = new THREE.Scene(); { const m = new THREE.Mesh(fsGeo, cloudMat); m.frustumCulled = false; cloudScene.add(m); }
-const compScene = new THREE.Scene(); { const m = new THREE.Mesh(fsGeo, compMat); m.frustumCulled = false; compScene.add(m); }
 const fsScene = (mat) => { const sc = new THREE.Scene(); const m = new THREE.Mesh(fsGeo, mat); m.frustumCulled = false; sc.add(m); return sc; };
 const HF = { type: THREE.HalfFloatType, depthBuffer: false };
+const cloudScene = fsScene(cloudMat), compScene = fsScene(compMat);
 
-// Scene pass (MSAA in HD) with a depth texture the clouds stop against
 let sceneRT = null;
 function makeSceneRT(samples) {
   if (sceneRT) { sceneRT.depthTexture.dispose(); sceneRT.dispose(); }
@@ -895,12 +921,10 @@ function makeSceneRT(samples) {
 }
 makeSceneRT(Q.samples);
 
-// Cloud pass writes colour and cloud depth
 const cloudRT = new THREE.WebGLRenderTarget(4, 4, Object.assign({ count: 2 }, HF));
 cloudRT.textures[0].minFilter = cloudRT.textures[0].magFilter = THREE.LinearFilter;
 cloudRT.textures[1].minFilter = cloudRT.textures[1].magFilter = THREE.NearestFilter;
 
-// Temporal accumulation: reproject last frame's clouds and blend, clamped to the local neighbourhood
 const histRT = [0, 1].map(() => { const r = new THREE.WebGLRenderTarget(4, 4, HF); r.texture.minFilter = r.texture.magFilter = THREE.LinearFilter; return r; });
 let histIdx = 0, histValid = false;
 const prevVP = new THREE.Matrix4();
@@ -928,19 +952,16 @@ const resolveMat = new THREE.ShaderMaterial({
       float d = texture2D(uDep, vUv).x;
       vec4 v = uInvProj * vec4(vUv * 2.0 - 1.0, 1.0, 1.0); v /= v.w;
       vec3 rd = normalize((uCamWorld * vec4(v.xyz, 0.0)).xyz);
-      vec3 wp = uCamPos + rd * (d > 0.0 ? d : 300.0);
-      vec4 pc = uPrevVP * vec4(wp, 1.0);
+      vec4 pc = uPrevVP * vec4(uCamPos + rd * (d > 0.0 ? d : 400.0), 1.0);
       vec2 puv = pc.xy / pc.w * 0.5 + 0.5;
       float ok = step(0.0, puv.x) * step(puv.x, 1.0) * step(0.0, puv.y) * step(puv.y, 1.0) * step(0.0, pc.w);
-      vec4 h = clamp(texture2D(uHist, puv), mn, mx);
-      gl_FragColor = mix(c, h, uBlend * ok);
+      gl_FragColor = mix(c, clamp(texture2D(uHist, puv), mn, mx), uBlend * ok);
     }
   `,
   depthTest: false, depthWrite: false,
 });
 const resolveScene = fsScene(resolveMat);
 
-// Composite → bloom → final
 const compRT = new THREE.WebGLRenderTarget(4, 4, HF);
 compRT.texture.minFilter = compRT.texture.magFilter = THREE.LinearFilter;
 const bloomA = new THREE.WebGLRenderTarget(4, 4, HF), bloomB = new THREE.WebGLRenderTarget(4, 4, HF);
@@ -953,9 +974,8 @@ const brightMat = new THREE.ShaderMaterial({
     void main() {
       vec3 c = (texture2D(uSrc, vUv + uTexel * vec2(-1.0, -1.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(1.0, -1.0)).rgb
               + texture2D(uSrc, vUv + uTexel * vec2(-1.0, 1.0)).rgb + texture2D(uSrc, vUv + uTexel * vec2(1.0, 1.0)).rgb) * 0.25;
-      float l = max(c.r, max(c.g, c.b));
-      float k = smoothstep(0.62, 1.1, l);
-      gl_FragColor = vec4(c * k, 1.0);
+      float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      gl_FragColor = vec4(c * smoothstep(1.6, 4.0, l), 1.0);
     }
   `,
   depthTest: false, depthWrite: false,
@@ -975,14 +995,17 @@ const blurMat = new THREE.ShaderMaterial({
   depthTest: false, depthWrite: false,
 });
 const finalMat = new THREE.ShaderMaterial({
-  uniforms: { uSrc: { value: compRT.texture }, uBloom: { value: bloomA.texture }, uFrame: cloudMat.uniforms.uFrame },
+  uniforms: { uSrc: { value: compRT.texture }, uBloom: { value: bloomA.texture }, uFrame: cloudMat.uniforms.uFrame, uExposure: { value: 0.46 } },
   vertexShader: FS_VERT,
   fragmentShader: /* glsl */`
-    uniform sampler2D uSrc, uBloom; uniform float uFrame; varying vec2 vUv;
+    uniform sampler2D uSrc, uBloom; uniform float uFrame, uExposure; varying vec2 vUv;
+    vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
     void main() {
-      vec3 col = texture2D(uSrc, vUv).rgb + texture2D(uBloom, vUv).rgb * 0.55;
+      vec3 col = texture2D(uSrc, vUv).rgb + texture2D(uBloom, vUv).rgb * 0.35;
+      col = aces(col * uExposure);
+      col = pow(col, vec3(1.0 / 2.2));
       vec2 q = vUv - 0.5;
-      col *= 1.0 - 0.56 * dot(q, q);
+      col *= 1.0 - 0.62 * dot(q, q);
       float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)) + uFrame * 0.1));
       col += (n - 0.5) / 255.0;
       gl_FragColor = vec4(col, 1.0);
@@ -992,7 +1015,7 @@ const finalMat = new THREE.ShaderMaterial({
 });
 const brightScene = fsScene(brightMat), blurScene = fsScene(blurMat), finalScene = fsScene(finalMat);
 
-// 128³ Perlin–Worley noise rendered on the GPU, slice by slice
+// 128³ Perlin–Worley noise rendered on the GPU, one slice at a time
 function makeNoiseGPU(N = 128) {
   const rt = new THREE.WebGL3DRenderTarget(N, N, N, { format: THREE.RedFormat, type: THREE.UnsignedByteType, depthBuffer: false });
   const tex = rt.texture;
@@ -1045,22 +1068,20 @@ function makeNoiseGPU(N = 128) {
 try { U.uNoise.value = makeNoiseGPU(128); }
 catch (err) { console.warn('GPU noise failed, using CPU noise', err); U.uNoise.value = makeNoiseTexture(64); }
 
-/* ---------- sky ---------- */
-const sky = new THREE.Mesh(new THREE.SphereGeometry(600, 48, 24), new THREE.ShaderMaterial({
-  uniforms: { uSun: U.uSun },
-  side: THREE.BackSide, depthWrite: false,
+/* =====================================================================
+   Sky and ocean
+   ===================================================================== */
+const sky = new THREE.Mesh(new THREE.SphereGeometry(3000, 48, 24), new THREE.ShaderMaterial({
+  uniforms: U, side: THREE.BackSide, depthWrite: false,
   vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  fragmentShader: /* glsl */`
-    uniform vec3 uSun; varying vec3 vDir;
-    float h(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+  fragmentShader: STORM_GLSL + /* glsl */`
+    varying vec3 vDir;
     void main() {
       vec3 d = normalize(vDir);
-      vec3 zen = vec3(0.012, 0.022, 0.042), hor = vec3(0.075, 0.105, 0.15), low = vec3(0.02, 0.035, 0.055);
-      vec3 col = d.y > 0.0 ? mix(hor, zen, pow(smoothstep(0.0, 0.7, d.y), 0.7)) : mix(hor, low, smoothstep(0.0, -0.2, d.y));
-      col += vec3(1.0, 0.8, 0.55) * pow(max(dot(d, uSun), 0.0), 40.0) * 0.18;
-      vec3 g = floor(d * 260.0);
-      float st = step(0.9965, h(g)) * smoothstep(0.08, 0.5, d.y);
-      col += vec3(0.8, 0.85, 1.0) * st * (0.35 + 0.65 * h(g + 3.1));
+      vec3 zen = vec3(0.02, 0.05, 0.13);
+      vec3 col = mix(fogColor(d), zen, pow(smoothstep(0.0, 0.65, d.y), 0.65));
+      col += vec3(1.0, 0.85, 0.6) * smoothstep(0.9994, 0.99975, dot(d, uSun)) * 60.0;
+      col = mix(col, irColor(uSST) * 0.3, uIR);
       gl_FragColor = vec4(col, 1.0);
     }
   `,
@@ -1068,9 +1089,27 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(600, 48, 24), new THREE.Shad
 sky.renderOrder = -10;
 scene.add(sky);
 
-/* ---------- ocean: lit waves, whitecaps, storm shadow, overlays ---------- */
-const ocean = new THREE.Mesh(new THREE.PlaneGeometry(260, 260, 260, 260).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
-  uniforms: U, transparent: true,
+function radialGrid(maxR, seg) {
+  const rings = [0]; let r = 0, dr = 0.3;
+  while (r < maxR) { r += dr; rings.push(r); dr *= 1.034; }
+  const pos = [0, 0, 0], idx = [];
+  for (let i = 1; i < rings.length; i++) for (let j = 0; j < seg; j++) {
+    const a = j / seg * Math.PI * 2;
+    pos.push(rings[i] * Math.cos(a), 0, rings[i] * Math.sin(a));
+  }
+  const at = (i, j) => i === 0 ? 0 : 1 + (i - 1) * seg + (j % seg);
+  for (let j = 0; j < seg; j++) idx.push(0, at(1, j + 1), at(1, j));
+  for (let i = 1; i < rings.length - 1; i++) for (let j = 0; j < seg; j++) {
+    const a = at(i, j), b = at(i, j + 1), c = at(i + 1, j), d = at(i + 1, j + 1);
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  return g;
+}
+const ocean = new THREE.Mesh(radialGrid(1800, 240), new THREE.ShaderMaterial({
+  uniforms: U,
   vertexShader: STORM_GLSL + /* glsl */`
     uniform float uSurge;
     varying vec3 vW; varying float vH;
@@ -1086,7 +1125,7 @@ const ocean = new THREE.Mesh(new THREE.PlaneGeometry(260, 260, 260, 260).rotateX
     }
   `,
   fragmentShader: STORM_GLSL + /* glsl */`
-    uniform float uWindOn, uSurgeOn, uSurge;
+    uniform float uWindOn, uSurgeOn, uSurge, uRings;
     varying vec3 vW; varying float vH;
     vec3 ssColor(float kt) {
       vec3 c = vec3(0.37, 0.73, 1.0);
@@ -1096,117 +1135,107 @@ const ocean = new THREE.Mesh(new THREE.PlaneGeometry(260, 260, 260, 260).rotateX
       c = mix(c, vec3(1.0, 0.76, 0.25), step(96.0, kt));
       c = mix(c, vec3(1.0, 0.56, 0.13), step(113.0, kt));
       c = mix(c, vec3(1.0, 0.38, 0.38), step(137.0, kt));
-      return c;
+      return pow(c, vec3(2.2));
     }
     void main() {
       vec2 xz = vW.xz;
       float r = length(xz);
       float th = atan(-xz.y, xz.x);
-      // local wind: Holland profile, plus forward motion on the right of track
       float xr = uRm / max(r, 0.01); xr *= xr;
       float v = uVm * sqrt(xr * exp(1.0 - xr));
       float vAsym = v + 5.0 * cos(th) * clamp(v / uVm, 0.0, 1.0);
-      float rough = clamp(vAsym / 45.0, 0.08, 1.3);
-      // wave normals: a few travelling sines, steeper where wind is stronger
+      float rough = clamp(vAsym / 40.0, 0.1, 1.4);
       vec2 tang = vec2(-sin(th), -cos(th));
-      vec2 inw = -normalize(xz + 1e-4);
-      vec2 wdir = normalize(tang * 0.94 + inw * 0.34);
+      vec2 wdir = normalize(tang * 0.94 - normalize(xz + 1e-4) * 0.34);
+      wdir = normalize(mix(vec2(0.8, 0.6), wdir, smoothstep(uBandR * 2.5, uBandR * 1.2, r)));
+      float dist = length(cameraPosition - vW);
+      float lod = 1.0 - smoothstep(60.0, 500.0, dist);
       vec2 d = vec2(0.0);
       vec2 dirs[4]; dirs[0] = wdir; dirs[1] = normalize(wdir + vec2(0.5, 0.2)); dirs[2] = vec2(0.8, 0.6); dirs[3] = vec2(-0.3, 0.95);
-      float ks[4]; ks[0] = 1.3; ks[1] = 2.3; ks[2] = 0.7; ks[3] = 3.7;
-      float amp[4]; amp[0] = 0.10 * rough; amp[1] = 0.05 * rough; amp[2] = 0.05; amp[3] = 0.018;
+      float ks[4]; ks[0] = 1.3; ks[1] = 2.3; ks[2] = 0.6; ks[3] = 3.7;
+      float amp[4]; amp[0] = 0.11 * rough; amp[1] = 0.055 * rough; amp[2] = 0.05; amp[3] = 0.02;
       for (int i = 0; i < 4; i++) {
         float ph = dot(dirs[i], xz) * ks[i] - uTime * sqrt(ks[i]) * 1.6;
-        d += dirs[i] * ks[i] * amp[i] * cos(ph);
+        d += dirs[i] * ks[i] * amp[i] * cos(ph) * lod;
       }
       vec2 uvn = xz * 0.11 + wdir * uTime * 0.05;
       float tz = uTime * 0.004, e = 0.02;
       float h0 = texture(uNoise, vec3(uvn, tz)).r;
-      d += vec2(texture(uNoise, vec3(uvn + vec2(e, 0.0), tz)).r - h0, texture(uNoise, vec3(uvn + vec2(0.0, e), tz)).r - h0) / e * 0.012 * (0.4 + rough);
+      d += vec2(texture(uNoise, vec3(uvn + vec2(e, 0.0), tz)).r - h0, texture(uNoise, vec3(uvn + vec2(0.0, e), tz)).r - h0) / e * 0.012 * (0.4 + rough) * lod;
       vec3 N = normalize(vec3(-d.x, 1.0, -d.y));
       vec3 V = normalize(cameraPosition - vW);
-      vec3 R = reflect(-V, N);
+      vec3 R = reflect(-V, N); R.y = abs(R.y);
       float fres = 0.02 + 0.98 * pow(1.0 - max(dot(N, V), 0.0), 5.0);
       float warmth = clamp((uSST - 24.0) / 8.0, 0.0, 1.0);
-      vec3 deep = mix(vec3(0.006, 0.03, 0.07), vec3(0.008, 0.075, 0.11), warmth);
-      vec3 skyc = mix(vec3(0.07, 0.10, 0.145), vec3(0.015, 0.025, 0.045), smoothstep(0.0, 0.6, R.y));
-      // storm shadow on the sea
-      vec3 p0 = vec3(xz.x, 0.02, xz.y);
-      float shadow = exp(-shadowOD(p0, 1.9, 8) * 0.55);
-      vec3 col = mix(deep, skyc, fres);
-      col += vec3(1.0, 0.9, 0.75) * pow(max(dot(R, uSun), 0.0), 220.0) * 3.0 * shadow;
-      col += vec3(1.0, 0.85, 0.65) * pow(max(dot(R, uSun), 0.0), 12.0) * 0.05 * shadow;
-      col *= mix(0.38, 1.0, shadow);
+      vec3 deep = mix(vec3(0.002, 0.012, 0.028), vec3(0.002, 0.03, 0.045), warmth);
+      vec3 skyR = mix(fogColor(R), vec3(0.02, 0.05, 0.13), pow(smoothstep(0.0, 0.65, R.y), 0.65));
+      float shadow = 1.0;
+      if (r < uBandR * 1.6) shadow = exp(-shadowOD(vec3(xz.x, 0.02, xz.y), 1.9, 8) * 0.5);
+      vec3 col = mix(deep, skyR * mix(0.35, 1.0, shadow), fres);
+      col += uSunCol * pow(max(dot(R, uSun), 0.0), 600.0) * 30.0 * shadow;
+      col += uSunCol * pow(max(dot(R, uSun), 0.0), 40.0) * 0.12 * shadow;
       // whitecaps and spray streaks where the wind is violent
       float fn = texture(uNoise, vec3(xz.x * 0.22 + tang.x * uTime * 0.2, uTime * 0.02, xz.y * 0.22 + tang.y * uTime * 0.2)).r;
-      float foam = smoothstep(0.62, 0.85, fn) * smoothstep(22.0, 50.0, vAsym);
-      col = mix(col, vec3(0.62, 0.68, 0.74) * mix(0.45, 1.0, shadow), foam * 0.55);
-      col = mix(col, irColor(uSST) * 0.85, uIR);
-      // range rings every 100 km
+      float foam = smoothstep(0.6, 0.85, fn) * smoothstep(20.0, 48.0, vAsym);
+      col = mix(col, (uSunCol * 0.18 * shadow + vec3(0.12, 0.15, 0.19)) * 0.9, foam * 0.6);
+      col += vec3(0.25, 0.3, 0.36) * smoothstep(30.0, 60.0, vAsym) * 0.25 * shadow;
+      col = mix(col, irColor(uSST) * 0.5, uIR);
       float dr = abs(r - 10.0 * floor(r / 10.0 + 0.5));
       float ring = (1.0 - smoothstep(0.0, fwidth(r) * 1.5, dr)) * step(5.0, r) * step(r, 55.0);
-      col += vec3(0.16, 0.24, 0.32) * ring * 0.55;
-      // wind field overlay (Saffir–Simpson colours)
+      col += vec3(0.25, 0.35, 0.45) * ring * uRings;
       float kt = vAsym * 1.94384;
-      col = mix(col, ssColor(kt) * 0.8, uWindOn * 0.75 * smoothstep(28.0, 36.0, kt));
-      // surge dome
+      col = mix(col, ssColor(kt) * 0.9, uWindOn * 0.7 * smoothstep(28.0, 36.0, kt));
       float sh = clamp(vH / max(uSurge, 0.001), 0.0, 1.0);
-      col = mix(col, mix(vec3(0.05, 0.35, 0.5), vec3(0.6, 0.95, 1.0), sh), uSurgeOn * smoothstep(0.05, 0.3, sh) * 0.85);
-      float fade = 1.0 - smoothstep(85.0, 128.0, r);
-      gl_FragColor = vec4(col, fade);
+      col = mix(col, mix(vec3(0.01, 0.15, 0.25), vec3(0.4, 0.9, 1.1), sh), uSurgeOn * smoothstep(0.05, 0.3, sh) * 0.85);
+      col = mix(col, fogColor(-V), (1.0 - exp(-dist * uFogD)) * (1.0 - uIR * 0.7));
+      gl_FragColor = vec4(col, 1.0);
     }
   `,
 }));
 ocean.renderOrder = 0;
 scene.add(ocean);
 
-/* ---------- airflow: glowing streamlines of the secondary circulation ---------- */
-const FLOW_VERT = /* glsl */`
-  uniform float uTilt, uExplode, uTop, uTime;
-  uniform float uKind;
-  varying float vS; varying vec3 vN; varying vec3 vW; varying float vY;
-  void main() {
-    vS = uv.x;
-    vec4 w = modelMatrix * vec4(position, 1.0);
-    vY = w.y;
-    float off = uKind > 0.5 ? 0.0 : mix(-6.0, 10.0, smoothstep(1.2, uTop * 0.85, w.y));
-    w.x += uTilt * w.y;
-    w.y += off * uExplode;
-    vW = w.xyz;
-    vN = normalize(mat3(modelMatrix) * normal);
-    gl_Position = projectionMatrix * viewMatrix * w;
-  }
-`;
+/* =====================================================================
+   Airflow streamlines, heat-engine loop, markers
+   ===================================================================== */
 const flowMat = new THREE.ShaderMaterial({
   uniforms: Object.assign({ uKind: { value: 0 } }, U),
-  vertexShader: FLOW_VERT,
+  vertexShader: /* glsl */`
+    uniform float uTilt, uExplode, uTop, uKind;
+    varying float vS; varying vec3 vN; varying vec3 vW; varying float vY;
+    void main() {
+      vS = uv.x;
+      vec4 w = modelMatrix * vec4(position, 1.0);
+      vY = w.y;
+      float off = uKind > 0.5 ? 0.0 : mix(-6.0, 10.0, smoothstep(1.2, uTop * 0.85, w.y));
+      w.x += uTilt * w.y;
+      w.y += off * uExplode;
+      vW = w.xyz;
+      vN = normalize(mat3(modelMatrix) * normal);
+      gl_Position = projectionMatrix * viewMatrix * w;
+    }
+  `,
   fragmentShader: /* glsl */`
-    uniform float uTime, uTop, uFlowVis, uKind, uRm;
+    uniform float uTime, uTop, uFlowVis, uKind;
     uniform vec4 uSeg;
     uniform vec3 uSun;
     varying float vS; varying vec3 vN; varying vec3 vW; varying float vY;
     void main() {
-      vec3 moist = vec3(0.27, 0.85, 0.76), heat = vec3(1.0, 0.52, 0.2), cold = vec3(0.72, 0.78, 1.0), warm = vec3(1.0, 0.82, 0.55);
+      vec3 moist = vec3(0.05, 0.62, 0.48), heat = vec3(1.0, 0.25, 0.04), cold = vec3(0.5, 0.56, 1.0), warm = vec3(1.0, 0.62, 0.25);
       float hN = clamp(vY / uTop, 0.0, 1.0);
-      float r = length(vW.xz);
       vec3 base; float seg;
       if (uKind > 0.5) { base = warm; seg = uSeg.w; }
       else {
         base = mix(moist, heat, smoothstep(0.04, 0.3, hN));
         base = mix(base, cold, smoothstep(0.78, 0.95, hN));
-        float wIn = 1.0 - smoothstep(0.08, 0.16, hN);
-        float wOut = smoothstep(0.8, 0.9, hN);
-        float wUp = clamp(1.0 - wIn - wOut, 0.0, 1.0);
-        seg = wIn * uSeg.x + wUp * uSeg.y + wOut * uSeg.z;
+        float wIn = 1.0 - smoothstep(0.08, 0.16, hN), wOut = smoothstep(0.8, 0.9, hN);
+        seg = wIn * uSeg.x + clamp(1.0 - wIn - wOut, 0.0, 1.0) * uSeg.y + wOut * uSeg.z;
       }
       vec3 V = normalize(cameraPosition - vW);
-      float lam = 0.45 + 0.55 * max(dot(normalize(vN), uSun), 0.0);
       float rim = pow(1.0 - abs(dot(normalize(vN), V)), 2.0);
       float p = fract(vS * 22.0 - uTime * 0.55);
-      float pulse = pow(p, 5.0);
-      vec3 col = base * (0.28 * lam + 0.55 * rim) + base * pulse * 1.8 + vec3(1.0) * pulse * pulse * 0.4;
-      col *= seg * uFlowVis;
-      gl_FragColor = vec4(col, 1.0);
+      vec3 col = base * (0.5 + 1.4 * rim) + base * pow(p, 5.0) * 7.0;
+      gl_FragColor = vec4(col * seg * uFlowVis, 1.0);
     }
   `,
 });
@@ -1216,7 +1245,7 @@ scene.add(flowGroup);
 let flowBuilt = null;
 function buildFlow(rm, top, bandR) {
   for (const c of [...flowGroup.children]) { c.geometry.dispose(); flowGroup.remove(c); }
-  const STR = 14;
+  const STR = 12;
   for (let i = 0; i < STR; i++) {
     const th0 = i / STR * Math.PI * 2 + (i % 2) * 0.2;
     const jr = (i % 3) / 3, jz = ((i * 7) % 5) / 5;
@@ -1225,29 +1254,21 @@ function buildFlow(rm, top, bandR) {
     for (let k = 0; k <= 180; k++) {
       const s = k / 180;
       let r, y, th;
-      if (s < 0.45) { const u = s / 0.45; r = R0 + (rm * 1.08 - R0) * Math.pow(u, 0.8); y = 0.35 + 0.5 * jz; th = th0 + 7.0 * u; }
-      else if (s < 0.6) { const u = (s - 0.45) / 0.15; y = (0.35 + 0.5 * jz) + (top * 0.93 - 0.35 - 0.5 * jz) * u; r = rm * (1.08 + 0.55 * Math.pow(u, 1.5)); th = th0 + 7.0 + 3.0 * u; }
-      else { const u = (s - 0.6) / 0.4; r = rm * 1.63 + (R0 * 1.02 - rm * 1.63) * Math.pow(u, 0.7); y = top * (0.93 - 0.12 * u) + jz * 0.5 * u; th = th0 + 10.0 + 1.3 * u - 3.2 * u * u; }
+      if (s < 0.45) { const u = s / 0.45; r = R0 + (rm * 1.2 - R0) * Math.pow(u, 0.8); y = 0.35 + 0.5 * jz; th = th0 + 7.0 * u; }
+      else if (s < 0.6) { const u = (s - 0.45) / 0.15; y = (0.35 + 0.5 * jz) + (top * 0.93 - 0.35 - 0.5 * jz) * u; r = rm * (1.2 + 0.6 * Math.pow(u, 1.5)); th = th0 + 7.0 + 3.0 * u; }
+      else { const u = (s - 0.6) / 0.4; r = rm * 1.8 + (R0 * 1.02 - rm * 1.8) * Math.pow(u, 0.7); y = top * (0.93 - 0.12 * u) + jz * 0.5 * u; th = th0 + 10.0 + 1.3 * u - 3.2 * u * u; }
       pts.push(new THREE.Vector3(r * Math.cos(th), y, -r * Math.sin(th)));
     }
-    const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 320, 0.13, 6, false);
-    flowGroup.add(new THREE.Mesh(g, flowMat));
+    flowGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 320, 0.1, 6, false), flowMat));
   }
   for (let i = 0; i < 4; i++) {
-    const pts = [];
-    const th0 = i * Math.PI / 2 + 0.4, rr = rm * (0.25 + 0.12 * i);
-    for (let k = 0; k <= 60; k++) {
-      const u = k / 60;
-      const th = th0 + 2.2 * u;
-      pts.push(new THREE.Vector3(rr * Math.cos(th), top * 0.9 * (1 - u) + 0.3, -rr * Math.sin(th)));
-    }
-    const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 90, 0.11, 6, false);
-    flowGroup.add(new THREE.Mesh(g, eyeFlowMat));
+    const pts = [], th0 = i * Math.PI / 2 + 0.4, rr = rm * (0.2 + 0.1 * i);
+    for (let k = 0; k <= 60; k++) { const u = k / 60, th = th0 + 2.2 * u; pts.push(new THREE.Vector3(rr * Math.cos(th), top * 0.9 * (1 - u) + 0.3, -rr * Math.sin(th))); }
+    flowGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 90, 0.09, 6, false), eyeFlowMat));
   }
   flowBuilt = { rm, top, bandR };
 }
 
-/* ---------- heat-engine loop, drawn on the slice face ---------- */
 const loopMat = new THREE.ShaderMaterial({
   uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   vertexShader: /* glsl */`
@@ -1265,18 +1286,17 @@ const loopMat = new THREE.ShaderMaterial({
     uniform float uTime, uTop, uRm, uEngine;
     varying float vS; varying vec3 vL; varying vec3 vN; varying vec3 vW;
     void main() {
-      vec3 moist = vec3(0.27, 0.85, 0.76), heat = vec3(1.0, 0.52, 0.2), cold = vec3(0.72, 0.78, 1.0), grey = vec3(0.55, 0.62, 0.72);
+      vec3 moist = vec3(0.05, 0.62, 0.48), heat = vec3(1.0, 0.25, 0.04), cold = vec3(0.5, 0.56, 1.0), grey = vec3(0.25, 0.32, 0.45), hot = vec3(1.0, 0.7, 0.45);
       float r = -vL.x, y = vL.y;
       vec3 col;
       if (y < 0.9) col = mix(moist, heat, smoothstep(30.0, uRm * 2.0, r));
-      else if (r < uRm * 2.3) col = mix(heat, vec3(1.0, 0.85, 0.7), smoothstep(0.1, 0.9, y / uTop));
-      else if (y > uTop * 0.78) col = mix(vec3(1.0, 0.85, 0.7), cold, smoothstep(uRm * 2.3, uRm * 5.0, r));
+      else if (r < uRm * 2.4) col = mix(heat, hot, smoothstep(0.1, 0.9, y / uTop));
+      else if (y > uTop * 0.78) col = mix(hot, cold, smoothstep(uRm * 2.4, uRm * 5.0, r));
       else col = mix(grey, cold, smoothstep(0.1, 0.8, y / uTop));
       vec3 V = normalize(cameraPosition - vW);
       float rim = pow(1.0 - abs(dot(normalize(vN), V)), 1.5);
       float p = fract(vS * 16.0 - uTime * 0.3);
-      float pulse = pow(p, 4.0);
-      vec3 c = col * (0.55 + 0.6 * rim) + col * pulse * 1.6 + vec3(1.0) * pow(p, 12.0) * 0.6;
+      vec3 c = col * (1.2 + 1.5 * rim) + col * pow(p, 4.0) * 6.0;
       gl_FragColor = vec4(c * uEngine, 1.0);
     }
   `,
@@ -1286,82 +1306,79 @@ scene.add(loopGroup);
 let loopMesh = null;
 function buildLoop(rm, top, bandR) {
   if (loopMesh) { loopMesh.geometry.dispose(); loopGroup.remove(loopMesh); }
-  const R0 = bandR * 0.98, yb = 0.5, yt = top * 0.93, yo = top * 0.8;
-  const pts = [];
-  const push = (r, y) => pts.push(new THREE.Vector3(-r, y, 0));
-  for (let k = 0; k <= 30; k++) push(R0 + (rm * 1.1 - R0) * k / 30, yb);
-  for (let k = 1; k <= 24; k++) { const u = k / 24; push(rm * (1.1 + 0.55 * Math.pow(u, 1.5)), yb + (yt - yb) * u); }
-  for (let k = 1; k <= 30; k++) { const u = k / 30; push(rm * 1.65 + (R0 - rm * 1.65) * u, yt + (yo - yt) * u); }
+  const R0 = bandR * 0.95, yb = 0.5, yt = top * 0.93, yo = top * 0.8;
+  const pts = [], push = (r, y) => pts.push(new THREE.Vector3(-r, y, 0));
+  for (let k = 0; k <= 30; k++) push(R0 + (rm * 1.2 - R0) * k / 30, yb);
+  for (let k = 1; k <= 24; k++) { const u = k / 24; push(rm * (1.2 + 0.6 * Math.pow(u, 1.5)), yb + (yt - yb) * u); }
+  for (let k = 1; k <= 30; k++) { const u = k / 30; push(rm * 1.8 + (R0 - rm * 1.8) * u, yt + (yo - yt) * u); }
   for (let k = 1; k < 20; k++) { const u = k / 20; push(R0, yo + (yb - yo) * u); }
-  const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.2), 420, 0.42, 10, true);
-  loopMesh = new THREE.Mesh(g, loopMat);
+  loopMesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.2), 420, 0.38, 10, true), loopMat);
   loopGroup.add(loopMesh);
 }
 
-/* ---------- Coriolis ring, storm-motion arrow, probe marker ---------- */
-const spinMat = new THREE.MeshBasicMaterial({ color: 0xd7a6ff, transparent: true, opacity: 0, depthWrite: false });
+const spinMat = new THREE.MeshBasicMaterial({ color: lin(0xd7a6ff).multiplyScalar(2.5), transparent: true, opacity: 0, depthWrite: false });
 const spinGroup = new THREE.Group();
 for (let i = 0; i < 14; i++) {
-  const a = i / 14 * Math.PI * 2, R = 40;
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(1.0, 3.4, 14), spinMat);
-  cone.position.set(R * Math.cos(a), 0.7, -R * Math.sin(a));
+  const a = i / 14 * Math.PI * 2, R = 44;
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(1.1, 3.8, 14), spinMat);
+  cone.position.set(R * Math.cos(a), 0.8, -R * Math.sin(a));
   cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-Math.sin(a), 0, -Math.cos(a)));
   spinGroup.add(cone);
 }
-spinGroup.add(new THREE.Mesh(new THREE.TorusGeometry(40, 0.14, 6, 180).rotateX(Math.PI / 2), spinMat));
+spinGroup.add(new THREE.Mesh(new THREE.TorusGeometry(44, 0.16, 6, 200).rotateX(Math.PI / 2), spinMat));
 scene.add(spinGroup);
 
-const motionMat = new THREE.MeshBasicMaterial({ color: 0xffc140, transparent: true, opacity: 0, depthWrite: false });
+const motionMat = new THREE.MeshBasicMaterial({ color: lin(0xffc140).multiplyScalar(2.5), transparent: true, opacity: 0, depthWrite: false });
 const motion = new THREE.Group();
 { const s = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 16, 12), motionMat); s.rotation.x = -Math.PI / 2; s.position.set(0, 0, -8);
   const h = new THREE.Mesh(new THREE.ConeGeometry(1.6, 4, 16), motionMat); h.rotation.x = -Math.PI / 2; h.position.set(0, 0, -18); motion.add(s, h); }
 scene.add(motion);
 
-const probeMat = new THREE.MeshBasicMaterial({ color: 0xe8eef4, transparent: true, opacity: 0, depthWrite: false });
+const probeMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(2, 2, 2), transparent: true, opacity: 0, depthWrite: false });
 const probe3d = new THREE.Group();
 const probePole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1, 6).translate(0, 0.5, 0), probeMat);
-const probeRing = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.07, 6, 48).rotateX(Math.PI / 2), probeMat);
-probe3d.add(probePole, probeRing);
+probe3d.add(probePole, new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.07, 6, 48).rotateX(Math.PI / 2), probeMat));
 scene.add(probe3d);
 
 /* =====================================================================
-   Targets → smoothed uniforms
+   Targets → smoothed uniforms, advection, lightning
    ===================================================================== */
-const ID = Object.fromEntries(PARTS.map(p => [p.key, p.id]));
+const FLOW_LESSONS = ['engine', 'inflow', 'eyewall', 'eye', 'canopy'];
 const cur = {}, tgt = {};
+const SLOW = new Set(['rm', 'top', 'vm', 'spin', 'org', 'bandR', 'eyeFill', 'tilt', 'shear', 'rot']);
 function setTargets() {
   const m = M, f = state.focus;
   tgt.rm = m.rmKm / KM;
   tgt.top = zUnits(m.topKm);
   tgt.vm = m.v;
-  tgt.spin = 0.12 + 0.42 * clamp(m.v / 70, 0, 1.2);
+  tgt.spin = 0.1 + 0.46 * clamp(m.v / 70, 0, 1.2);
+  tgt.org = clamp((m.kt - 20) / 115, 0, 1);
+  tgt.bandR = 24 + 22 * tgt.org;
+  tgt.rot = 0.015 + 0.05 * tgt.org;
   tgt.tilt = m.shearFrac * 0.75;
   tgt.shear = m.shearFrac;
   tgt.eyeFill = m.eyeFill;
-  tgt.org = clamp((m.kt - 28) / 105, 0, 1);
   tgt.sst = m.sst; tgt.tout = m.tout;
   tgt.cutW = state.view === 'cutaway' ? THREE.MathUtils.degToRad(state.opening) / 2 : 0;
   tgt.explode = state.view === 'exploded' ? 1 : 0;
   tgt.ir = state.img === 'ir' ? 1 : 0;
-  tgt.flow = state.flow ? 1 : 0;
-  tgt.windOn = f === 'wind' || f === 'category' ? 1 : 0;
+  tgt.flow = state.flow || FLOW_LESSONS.includes(f) ? 1 : 0;
+  tgt.windOn = f === 'wind' ? 1 : f === 'category' ? 0.55 : 0;
   tgt.surgeOn = f === 'surge' ? 1 : 0;
+  tgt.rings = ['wind', 'surge', 'ocean'].includes(f) ? 0.6 : 0;
   tgt.engine = f === 'engine' ? 1 : 0;
   tgt.spinVis = f === 'coriolis' ? 1 : 0;
   tgt.motionVis = f === 'wind' ? 1 : 0;
   tgt.surge = m.surgeMid * (f === 'surge' ? 0.9 : 0.1) + m.ib * 0.004;
-  // clouds: [eyewall, rainbands, canopy, eye]
   const D = {
-    engine: [0.95, 0.95, 0.9, 0.95], category: [0.95, 0.9, 0.55, 0.95], inflow: [0.3, 0.25, 0.2, 0.3], eyewall: [1, 0.15, 0.12, 0.3],
-    eye: [1, 1, 1, 1], rainbands: [0.15, 1, 0.1, 0.15], canopy: [1, 1, 1, 1], ocean: [0.18, 0.18, 0.12, 0.18],
-    wind: [0.2, 0.2, 0.1, 0.2], surge: [0.18, 0.18, 0.1, 0.18], coriolis: [0.45, 0.45, 0.3, 0.45],
+    engine: [0.9, 0.9, 0.85, 0.9], inflow: [0.35, 0.3, 0.2, 0.35], eyewall: [1, 0.2, 0.15, 0.35],
+    rainbands: [0.2, 1, 0.12, 0.2], ocean: [0.25, 0.25, 0.15, 0.25], wind: [0.3, 0.3, 0.15, 0.3],
+    surge: [0.25, 0.25, 0.12, 0.25], coriolis: [0.6, 0.6, 0.5, 0.6],
   }[f] || [1, 1, 1, 1];
   const Hc = { eyewall: [1, 0, 0, 0], rainbands: [0, 1, 0, 0], canopy: [0, 0, 1, 0], eye: [0, 0, 0, 1] }[f] || [0, 0, 0, 0];
-  // airflow: [inflow, ascent, outflow, eye subsidence]
   const S = {
     inflow: [1, 0.12, 0.12, 0.12], eyewall: [0.15, 1, 0.15, 0.15], canopy: [0.15, 0.15, 1, 0.15], eye: [0.12, 0.12, 0.12, 1],
-    ocean: [0.4, 0.2, 0.2, 0.2], wind: [0.4, 0.2, 0.2, 0.2], surge: [0.3, 0.2, 0.2, 0.2], rainbands: [0.3, 0.3, 0.3, 0.3],
-    engine: [0.4, 0.4, 0.4, 0.4], category: [0.35, 0.35, 0.35, 0.35],
+    engine: [0.4, 0.4, 0.4, 0.4],
   }[f] || [1, 1, 1, 1];
   for (let i = 0; i < 4; i++) { tgt['d' + i] = D[i]; tgt['h' + i] = Hc[i]; tgt['s' + i] = S[i]; }
 }
@@ -1369,150 +1386,198 @@ setTargets();
 Object.assign(cur, tgt);
 cur.cutC = -Math.PI / 2;
 
-function lerpAngle(a, b, k) { let d = ((b - a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; return a + d * k; }
+let growBoost = 0, lastKt = M.kt;
+const ADV = { P: 18, ph: 0, A0: 0, A1: 0, rot: 0 };
+const flash = { t: 0, next: 1.5, pos: new THREE.Vector3(), I: 0 };
+function lerpAngle(a, b, k) { const d = Math.atan2(Math.sin(b - a), Math.cos(b - a)); return a + d * k; }
 function applyUniforms(dt) {
-  const k = 1 - Math.exp(-dt * 4);
-  for (const key in tgt) cur[key] += (tgt[key] - cur[key]) * k;
-  // slice opens toward the camera
+  const kF = 1 - Math.exp(-dt * 4), kS = 1 - Math.exp(-dt * 1.3);
+  for (const key in tgt) cur[key] += (tgt[key] - cur[key]) * (SLOW.has(key) ? kS : kF);
   const camAz = Math.atan2(-(camera.position.z - controls.target.z), camera.position.x - controls.target.x);
   cur.cutC = lerpAngle(cur.cutC, camAz, 1 - Math.exp(-dt * 2.5));
-  U.uRm.value = cur.rm; U.uTop.value = cur.top; U.uVm.value = cur.vm; U.uSpin.value = cur.spin;
-  U.uOrg.value = cur.org;
+  growBoost = Math.max(0, growBoost - dt * 0.35);
+
+  // advection: accumulate angles so changing speeds never make the clouds jump
+  const spin = cur.spin * (1 + growBoost * 0.8);
+  const ph1Before = (ADV.ph + 0.5) % 1;
+  ADV.ph += dt / ADV.P;
+  ADV.A0 += spin * dt; ADV.A1 += spin * dt;
+  if (ADV.ph >= 1) { ADV.ph -= 1; ADV.A0 = 0; }
+  if ((ADV.ph + 0.5) % 1 < ph1Before) ADV.A1 = 0;
+  ADV.rot += dt * cur.rot * (1 + growBoost);
+  U.uA0.value = ADV.A0; U.uA1.value = ADV.A1; U.uPh.value = Math.abs(2 * ADV.ph - 1); U.uRot.value = ADV.rot;
+
+  U.uRm.value = cur.rm; U.uTop.value = cur.top; U.uVm.value = cur.vm; U.uOrg.value = cur.org; U.uBandR.value = cur.bandR;
   U.uTilt.value = cur.tilt; U.uShear.value = cur.shear; U.uEyeFill.value = cur.eyeFill;
   U.uSST.value = cur.sst; U.uTout.value = cur.tout; U.uIR.value = cur.ir;
   U.uCutW.value = cur.cutW; U.uCutC.value = cur.cutC;
   U.uExplode.value = cur.explode; U.uOffCan.value = 10 * cur.explode; U.uOffBand.value = 9 * cur.explode; U.uOceanY.value = -13 * cur.explode;
-  U.uFlowVis.value = cur.flow; U.uWindOn.value = cur.windOn; U.uSurgeOn.value = cur.surgeOn; U.uEngine.value = cur.engine;
+  U.uFlowVis.value = cur.flow; U.uWindOn.value = cur.windOn; U.uSurgeOn.value = cur.surgeOn; U.uRings.value = cur.rings; U.uEngine.value = cur.engine;
   U.uSurge.value = cur.surge;
   for (let i = 0; i < 4; i++) { U.uDimC.value[i] = cur['d' + i]; U.uHiC.value[i] = cur['h' + i]; }
   U.uSeg.value.set(cur.s0, cur.s1, cur.s2, cur.s3);
-  flowGroup.visible = cur.flow > 0.01;
+  flowGroup.visible = cur.flow > 0.02;
   loopGroup.visible = cur.engine > 0.03;
   loopGroup.rotation.y = Math.PI + (cur.cutC - Math.max(cur.cutW, 0.35) + 0.06);
-  spinMat.opacity = 0.85 * cur.spinVis; spinGroup.visible = cur.spinVis > 0.01; spinGroup.position.y = U.uOceanY.value;
-  motionMat.opacity = 0.9 * cur.motionVis; motion.visible = cur.motionVis > 0.01; motion.position.y = U.uOceanY.value + 0.9;
-  if (!flowBuilt || Math.abs(flowBuilt.rm - cur.rm) > 0.04 || Math.abs(flowBuilt.top - cur.top) > 0.08) {
-    buildFlow(cur.rm, cur.top, 42); buildLoop(cur.rm, cur.top, 42);
+  spinMat.opacity = cur.spinVis; spinGroup.visible = cur.spinVis > 0.01; spinGroup.position.y = U.uOceanY.value;
+  motionMat.opacity = cur.motionVis; motion.visible = cur.motionVis > 0.01; motion.position.y = U.uOceanY.value + 0.9;
+  if (flowGroup.visible || loopGroup.visible) {
+    if (!flowBuilt || Math.abs(flowBuilt.rm - cur.rm) > 0.05 || Math.abs(flowBuilt.top - cur.top) > 0.1 || Math.abs(flowBuilt.bandR - cur.bandR) > 0.5) {
+      buildFlow(cur.rm, cur.top, cur.bandR); buildLoop(cur.rm, cur.top, cur.bandR);
+    }
   }
+
+  // lightning: flickers in the eyewall and bands, more often while the storm is intensifying
+  flash.next -= dt;
+  if (flash.next <= 0 && state.img === 'visible' && !reduceMotion) {
+    const inWall = Math.random() < 0.7;
+    const a = Math.random() * Math.PI * 2;
+    const r = inWall ? cur.rm * (1.4 + Math.random() * 0.5) : cur.rm * 2.5 + Math.random() * (cur.bandR * 0.75 - cur.rm * 2.5);
+    const y = inWall ? cur.top * (0.2 + Math.random() * 0.5) : 1.5 + Math.random() * 4;
+    flash.pos.set(r * Math.cos(a) + cur.tilt * y, y, -r * Math.sin(a));
+    flash.t = 0.26; flash.I = 18 + Math.random() * 30;
+    const rate = 0.12 + 1.1 * cur.org * cur.org + 5 * growBoost;
+    flash.next = -Math.log(1 - Math.random()) / rate;
+  }
+  let fI = 0;
+  if (flash.t > 0) { flash.t -= dt; fI = flash.I * Math.max(0, flash.t / 0.26) * (0.45 + 0.55 * Math.abs(Math.sin(flash.t * 70))); }
+  U.uFlash.value.set(flash.pos.x, flash.pos.y, flash.pos.z, fI);
 }
 
 /* =====================================================================
-   Camera flights
+   Camera flights and framing
    ===================================================================== */
 const VIEWS = {
-  engine: { r: 132, phi: 1.18, ty: 3 },
-  category: { r: 130, phi: 0.9, ty: 2 },
-  ocean: { r: 150, phi: 1.1, ty: 0 },
-  inflow: { r: 96, phi: 1.3, ty: 1.5 },
-  eyewall: { r: 62, phi: 1.2, ty: 6 },
-  rainbands: { r: 140, phi: 0.72, ty: 2 },
-  canopy: { r: 150, phi: 0.62, ty: 6 },
-  wind: { r: 140, phi: 0.66, ty: 0 },
-  surge: { r: 96, phi: 1.2, ty: 0 },
-  coriolis: { r: 185, phi: 0.08, ty: 0 },
+  engine: { r: 118, phi: 1.33, ty: 5 },
+  ocean: { r: 150, phi: 1.36, ty: 0 },
+  inflow: { r: 92, phi: 1.43, ty: 2 },
+  eyewall: { r: 62, phi: 1.25, ty: 7 },
+  rainbands: { r: 150, phi: 0.82, ty: 2 },
+  canopy: { r: 170, phi: 0.5, ty: 6 },
+  wind: { r: 150, phi: 0.62, ty: 0 },
+  surge: { r: 90, phi: 1.25, ty: 0 },
+  coriolis: { r: 210, phi: 0.05, ty: 0 },
 };
-let flight = null;
+let flight = null, autoFrame = 0;
+function framingRadius() { return 2.0 * tgt.bandR + 14; }
 function flyTo(key) {
   const from = { pos: camera.position.clone(), target: controls.target.clone() };
   let toPos, toTarget;
+  const off = camera.position.clone().sub(controls.target);
+  const sph = new THREE.Spherical().setFromVector3(off);
   if (key === 'home') { toPos = HOME.pos.clone(); toTarget = HOME.target.clone(); }
   else if (key === 'eye') {
-    const rm = tgt.rm, top = tgt.top;
-    toTarget = new THREE.Vector3(0, top * 0.82, 0);
+    toTarget = new THREE.Vector3(0, tgt.top * 0.82, 0);
     const az = Math.atan2(camera.position.x, camera.position.z);
-    toPos = new THREE.Vector3(Math.sin(az) * rm * 0.42, 1.4, Math.cos(az) * rm * 0.42);
+    toPos = new THREE.Vector3(Math.sin(az) * tgt.rm * 0.4, 1.4, Math.cos(az) * tgt.rm * 0.4);
+  } else if (key === 'overview' || key === 'category') {
+    toTarget = new THREE.Vector3(0, 6, 0);
+    sph.radius = framingRadius(); sph.phi = 1.36;
+    toPos = new THREE.Vector3().setFromSpherical(sph).add(toTarget);
   } else {
     const v = VIEWS[key]; if (!v) return;
     toTarget = new THREE.Vector3(0, v.ty, 0);
-    const off = camera.position.clone().sub(controls.target);
-    const sph = new THREE.Spherical().setFromVector3(off);
     sph.radius = v.r; sph.phi = v.phi;
     toPos = new THREE.Vector3().setFromSpherical(sph).add(toTarget);
   }
   const inside = key === 'eye';
   controls.minDistance = inside ? 2 : 24;
-  controls.maxPolarAngle = inside ? Math.PI * 0.97 : Math.PI * 0.485;
-  flight = { from, toPos, toTarget, t: 0, dur: inside ? 2.6 : 1.7 };
+  controls.maxPolarAngle = inside ? Math.PI * 0.97 : Math.PI * 0.487;
+  flight = { from, toPos, toTarget, t: 0, dur: inside ? 2.8 : 1.9 };
 }
-controls.addEventListener('start', () => { flight = null; controls.autoRotate = false; });
+controls.addEventListener('start', () => { flight = null; autoFrame = 0; controls.autoRotate = false; });
 function updateFlight(dt) {
-  if (!flight) return;
-  flight.t += dt / flight.dur;
-  const u = Math.min(1, flight.t);
-  const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-  const tA = flight.from.target, tB = flight.toTarget;
-  const target = tA.clone().lerp(tB, e);
-  // interpolate in spherical space around the moving target so the camera swings, not slides
-  const sA = new THREE.Spherical().setFromVector3(flight.from.pos.clone().sub(tA));
-  const sB = new THREE.Spherical().setFromVector3(flight.toPos.clone().sub(tB));
-  let dTh = sB.theta - sA.theta; dTh = Math.atan2(Math.sin(dTh), Math.cos(dTh));
-  const s = new THREE.Spherical(sA.radius + (sB.radius - sA.radius) * e, sA.phi + (sB.phi - sA.phi) * e, sA.theta + dTh * e);
-  camera.position.copy(new THREE.Vector3().setFromSpherical(s).add(target));
-  controls.target.copy(target);
-  if (u >= 1) flight = null;
+  if (flight) {
+    flight.t += dt / flight.dur;
+    const u = Math.min(1, flight.t);
+    const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+    const tA = flight.from.target, tB = flight.toTarget;
+    const target = tA.clone().lerp(tB, e);
+    const sA = new THREE.Spherical().setFromVector3(flight.from.pos.clone().sub(tA));
+    const sB = new THREE.Spherical().setFromVector3(flight.toPos.clone().sub(tB));
+    const dTh = Math.atan2(Math.sin(sB.theta - sA.theta), Math.cos(sB.theta - sA.theta));
+    const s = new THREE.Spherical(sA.radius + (sB.radius - sA.radius) * e, sA.phi + (sB.phi - sA.phi) * e, sA.theta + dTh * e);
+    camera.position.copy(new THREE.Vector3().setFromSpherical(s).add(target));
+    controls.target.copy(target);
+    if (u >= 1) flight = null;
+  } else if (autoFrame > 0) {
+    // keep the growing storm framed
+    autoFrame -= dt;
+    const off = camera.position.clone().sub(controls.target);
+    const sph = new THREE.Spherical().setFromVector3(off);
+    sph.radius += (framingRadius() - sph.radius) * (1 - Math.exp(-dt * 0.9));
+    camera.position.copy(new THREE.Vector3().setFromSpherical(sph).add(controls.target));
+  }
 }
 
 /* =====================================================================
-   Labels pinned to 3D anchors
+   Callout labels
    ===================================================================== */
 const labelsEl = $('labels');
 const LABELS = [];
-function makeTag(key, html, color, cls = '') {
-  const el = document.createElement(key ? 'button' : 'div');
-  if (key) { el.type = 'button'; el.addEventListener('click', () => select(key)); }
-  el.className = 'tag ' + cls;
+function makeCallout(key, text, color, isStatic) {
+  const el = document.createElement('div');
+  el.className = 'co' + (isStatic ? ' static' : '');
   el.style.setProperty('--c', color);
-  el.innerHTML = `<i></i>${html}`;
+  const tx = document.createElement(isStatic ? 'span' : 'button');
+  tx.className = 'tx';
+  if (!isStatic) { tx.type = 'button'; tx.addEventListener('click', () => select(key)); }
+  tx.innerHTML = text;
+  el.innerHTML = '<span class="ln"></span><span class="pt"></span>';
+  el.appendChild(tx);
   labelsEl.appendChild(el);
   return el;
 }
-for (const key of ['ocean', 'inflow', 'eyewall', 'eye', 'rainbands', 'canopy']) {
-  LABELS.push({ key, el: makeTag(key, PART[key].name, PART[key].color), when: () => state.focus === 'eye' ? (key === 'eyewall' || key === 'eye') : state.focus !== 'engine' || key === 'canopy' });
-}
-LABELS.push({ key: 'wind', el: makeTag('wind', 'Right-front quadrant', PART.wind.color), when: () => state.focus === 'wind' });
-LABELS.push({ key: 'motion', el: makeTag(null, 'Storm motion 10 kt', PART.wind.color, 'note'), when: () => state.focus === 'wind' });
-LABELS.push({ key: 'surge', el: makeTag('surge', 'Surge dome (exaggerated)', PART.surge.color), when: () => state.focus === 'surge' });
-LABELS.push({ key: 'coriolis', el: makeTag('coriolis', 'Counterclockwise spin', PART.coriolis.color), when: () => state.focus === 'coriolis' });
-[['1', 'Heat in from the sea', '#46c7b8'], ['2', 'Rise, condense, release heat', '#ff8a3d'], ['3', 'Heat out to space', '#b9c6ff'], ['4', 'Sink far from the centre', '#93a4b8']]
-  .forEach(([n, t, c], i) => LABELS.push({ key: 'leg' + i, el: makeTag(null, `<b>${n}</b>&nbsp;${t}`, c, 'leg'), when: () => state.focus === 'engine' && cur.engine > 0.5 }));
+const LABEL_SETS = {
+  overview: ['eyewall', 'eye', 'rainbands', 'canopy'], engine: ['leg0', 'leg1', 'leg2', 'leg3'], ocean: ['ocean'],
+  inflow: ['inflow'], eyewall: ['eyewall', 'eye'], eye: ['eye', 'eyewall'], rainbands: ['rainbands'], canopy: ['canopy', 'eye'],
+  wind: ['wind', 'motion'], surge: ['surge'], coriolis: ['coriolis'], category: ['eye', 'eyewall', 'rainbands', 'canopy'],
+};
+for (const key of ['ocean', 'inflow', 'eyewall', 'eye', 'rainbands', 'canopy']) LABELS.push({ key, el: makeCallout(key, PART[key].name, PART[key].color) });
+LABELS.push({ key: 'wind', el: makeCallout('wind', 'Right-front quadrant', PART.wind.color) });
+LABELS.push({ key: 'motion', el: makeCallout(null, 'Storm motion 10 kt', PART.wind.color, true) });
+LABELS.push({ key: 'surge', el: makeCallout('surge', 'Surge dome (exaggerated)', PART.surge.color) });
+LABELS.push({ key: 'coriolis', el: makeCallout('coriolis', 'Counterclockwise spin', PART.coriolis.color) });
+[['1', 'Heat in from the sea', '#46c7b8'], ['2', 'Rise and release heat', '#ff8a3d'], ['3', 'Heat out to space', '#b9c6ff'], ['4', 'Sink far from the centre', '#98a9bb']]
+  .forEach(([n, t, c], i) => LABELS.push({ key: 'leg' + i, el: makeCallout(null, `<b>${n}</b>${t}`, c, true) }));
 
 const tmpV = new THREE.Vector3();
 function polar(r, y, phi) { return tmpV.set(r * Math.cos(phi) + cur.tilt * y, y, -r * Math.sin(phi)); }
 function anchor(key) {
-  const rm = cur.rm, top = cur.top, e = cur.explode, oy = U.uOceanY.value, R0 = 42 * 0.98;
-  const face = cur.cutC - Math.max(cur.cutW, 0.35) + 0.06;
-  const C = cur.cutC;
+  const rm = cur.rm, top = cur.top, e = cur.explode, oy = U.uOceanY.value, R0 = cur.bandR * 0.95;
+  const face = cur.cutC - Math.max(cur.cutW, 0.35) + 0.06, C = cur.cutC;
   switch (key) {
-    case 'ocean': return polar(62, oy + 0.4, C - 2.3);
-    case 'inflow': return polar(30, 1.0 - 6 * e, face + 0.12);
-    case 'eyewall': return polar(rm * 1.4, top * 0.6, state.focus === 'eye' ? C + Math.PI : face + 0.08);
-    case 'eye': return polar(0, state.focus === 'eye' ? top * 0.55 : top * 0.25, 0);
-    case 'rainbands': return polar(27 + 9 * e, 3.5, C + 2.0);
-    case 'canopy': return polar(24, top + 0.8 + 10 * e, C + 1.7);
+    case 'ocean': return polar(cur.bandR * 1.35, oy + 0.3, C - 0.9);
+    case 'inflow': return polar(cur.bandR * 0.7, 1.0 - 6 * e, C - 0.6);
+    case 'eyewall': return polar(rm * 1.7, top * 0.66, state.focus === 'eye' ? C + Math.PI : C - 0.35);
+    case 'eye': return polar(0, state.focus === 'eye' ? top * 0.55 : top * 0.35, 0);
+    case 'rainbands': return polar(cur.bandR * 0.62 + 9 * e, 3.8, C + 0.75);
+    case 'canopy': return polar(cur.bandR * 0.45, top * 0.95 + 10 * e, C + 1.6);
     case 'wind': return tmpV.set(rm * 1.5, oy + 0.6, -rm * 1.5);
     case 'motion': return tmpV.set(0, oy + 1.4, -21);
     case 'surge': return tmpV.set(rm * 1.2, oy + cur.surge + 0.8, -rm * 1.2);
-    case 'coriolis': return polar(40, oy + 1.4, C + 0.9);
+    case 'coriolis': return polar(44, oy + 1.4, C + 0.9);
     case 'leg0': return polar((R0 + rm) / 2, 0.5, face);
-    case 'leg1': return polar(rm * 1.35, top * 0.5, face);
-    case 'leg2': return polar((R0 + rm * 1.65) / 2, top * 0.87 + 1.1, face);
+    case 'leg1': return polar(rm * 1.5, top * 0.5, face);
+    case 'leg2': return polar((R0 + rm * 1.8) / 2, top * 0.87 + 1.1, face);
     case 'leg3': return polar(R0, top * 0.45, face);
   }
   return tmpV.set(0, 0, 0);
 }
-const mastEl = document.querySelector('.masthead');
 function placeLabels(w, h) {
-  const sr = stage.getBoundingClientRect(), mr = mastEl.getBoundingClientRect();
-  const mx0 = mr.left - sr.left - 60, mx1 = mr.right - sr.left + 60, my1 = mr.bottom - sr.top + 14;
+  const set = LABEL_SETS[state.focus] || [];
+  const occl = [...document.querySelectorAll('.lesson, .console, .topbar > *')].map(el => el.getBoundingClientRect());
+  const sr = stage.getBoundingClientRect();
   for (const L of LABELS) {
-    if (!L.when()) { L.el.style.opacity = '0'; L.el.style.pointerEvents = 'none'; continue; }
+    if (!set.includes(L.key) || (L.key.startsWith('leg') && cur.engine < 0.5)) { L.el.style.opacity = '0'; L.el.querySelector('.tx').style.pointerEvents = 'none'; continue; }
     const p = anchor(L.key).project(camera);
     const x = (p.x * 0.5 + 0.5) * w, y = (-p.y * 0.5 + 0.5) * h;
-    const underTitle = x > mx0 && x < mx1 && y < my1;
-    const vis = p.z < 1 && x > -40 && x < w + 40 && y > 0 && y < h && !underTitle;
-    L.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`;
+    const ax = x + sr.left, ay = y + sr.top;
+    const hidden = occl.some(r => ax > r.left - 8 && ax < r.right + 8 && ay - 52 < r.bottom && ay > r.top - 8);
+    const vis = p.z < 1 && x > 0 && x < w && y > 60 && y < h && !hidden;
+    L.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
     L.el.style.opacity = vis ? '1' : '0';
-    L.el.style.pointerEvents = vis && L.el.tagName === 'BUTTON' ? 'auto' : 'none';
+    L.el.querySelector('.tx').style.pointerEvents = vis && L.el.querySelector('button') ? 'auto' : 'none';
     L.el.classList.toggle('on', L.key === state.focus);
   }
 }
@@ -1529,28 +1594,26 @@ canvas.addEventListener('pointerdown', () => { pointerDown = true; hideProbe(); 
 window.addEventListener('pointerup', () => { pointerDown = false; });
 canvas.addEventListener('pointerleave', hideProbe);
 canvas.addEventListener('pointermove', (e) => {
-  if (pointerDown || flight) return;
+  if (pointerDown || flight || state.focus === 'eye') return;
   const rect = canvas.getBoundingClientRect();
   ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   plane.constant = -U.uOceanY.value;
   const hit = ray.ray.intersectPlane(plane, new THREE.Vector3());
-  if (!hit || Math.hypot(hit.x, hit.z) > 62) { hideProbe(); return; }
+  if (!hit || Math.hypot(hit.x, hit.z) > 70) { hideProbe(); return; }
   showProbe(hit, e.clientX - rect.left, e.clientY - rect.top, rect.width);
 });
 function hideProbe() { probeOn = false; probeEl.style.opacity = '0'; }
 function showProbe(hit, px, py, w) {
   const m = M;
-  const rUnits = Math.hypot(hit.x, hit.z), rKm = rUnits * KM;
+  const rKm = Math.hypot(hit.x, hit.z) * KM;
   const th = Math.atan2(-hit.z, hit.x);
   let v = hollandV(rKm * 1000, m.v, m.rmKm * 1000);
   v += 5 * Math.cos(th) * clamp(v / m.v, 0, 1);
   const kt = Math.max(0, v * 1.94384);
-  const x = Math.pow(m.rmKm / Math.max(rKm, 0.1), 2.0);
-  const p = m.p + (1010 - m.p) * Math.exp(-x);
+  const p = m.p + (1010 - m.p) * Math.exp(-Math.pow(m.rmKm / Math.max(rKm, 0.1), 2));
   const zone = rKm < m.rmKm * 0.8 ? (m.eyeFill > 0.6 ? 'Centre (no clear eye yet)' : 'Eye: calm, sinking air')
-    : rKm < m.rmKm * 1.7 ? 'Eyewall: strongest winds'
-    : rKm < 300 ? 'Rainbands' : 'Outer circulation';
+    : rKm < m.rmKm * 1.7 ? 'Eyewall: strongest winds' : rKm < 300 ? 'Rainbands' : 'Outer circulation';
   const c = catFor(kt);
   const side = Math.cos(th) > 0.3 ? ' · stronger right side' : Math.cos(th) < -0.3 ? ' · weaker left side' : '';
   probeEl.innerHTML = `<b>Probe · ${fmt(rKm)} km from centre</b>
@@ -1558,7 +1621,7 @@ function showProbe(hit, px, py, w) {
     <div><span>Pressure</span>${fmt(p)} hPa</div>
     <div><span>Wind class</span>${kt < 34 ? 'below storm force' : c.key === 'TS' ? 'tropical storm' : 'Category ' + c.key}</div>
     <div class="zone">${zone}${side}</div>`;
-  const left = px + 18 + 220 > w ? px - 18 - 220 : px + 18;
+  const left = px + 18 + 230 > w ? px - 18 - 230 : px + 18;
   probeEl.style.transform = `translate(${left}px, ${py + 14}px)`;
   probeEl.style.opacity = '1';
   probeOn = true;
@@ -1567,25 +1630,15 @@ function showProbe(hit, px, py, w) {
 }
 
 /* =====================================================================
-   UI: parts list, detail, controls, readouts
+   Lesson card
    ===================================================================== */
-const partsEl = $('parts');
-const detailEl = $('detail');
-function renderParts() {
-  let html = '', lastGroup = '';
-  for (const p of PARTS) {
-    if (p.group !== lastGroup) { html += `<li class="group">${p.group}</li>`; lastGroup = p.group; }
-    html += `<li><button type="button" id="part-${p.key}" data-key="${p.key}" aria-pressed="${p.key === state.focus}" style="--c:${p.color}"><i></i><span>${p.name}</span><em>${p.tag(M)}</em></button></li>`;
-  }
-  partsEl.innerHTML = html;
-}
-partsEl.addEventListener('click', (e) => { const b = e.target.closest('button[data-key]'); if (b) select(b.dataset.key); });
-const FLY_HINT = {
-  eye: 'You are inside the eye, looking up the stadium. Drag to look around.',
+const lessonEl = $('lesson');
+let menuOpen = false;
+const STEP_HINT = {
+  eye: 'You are inside the eye, looking up the stadium of cloud. Drag to look around.',
   engine: 'Follow the glowing loop on the slice face.',
   coriolis: 'Looking straight down from space.',
-  wind: 'Hover the sea to probe wind at any point.',
-  category: 'The sea is coloured by wind strength. Click a category, or press Grow it to watch a depression become a Category 5.',
+  wind: 'Hover the sea to probe the wind at any point.',
 };
 function powerChart() {
   const W = 324, top = 20, base = 122, n = CAT_ROWS.length, gap = 6, bw = (W - gap * (n - 1)) / n;
@@ -1607,53 +1660,103 @@ function powerChart() {
   return `<figure class="cchart"><svg viewBox="0 0 ${W} 142" role="img" aria-label="Wind power by category, relative to Category 1">${g}<line x1="0" x2="${W}" y1="${base}" y2="${base}" class="axis"/></svg>`
     + `<figcaption>Wind power at each category’s typical wind speed, relative to Category 1. Power grows with the cube of wind speed, so each step up hits much harder than the last.</figcaption></figure>`;
 }
-function categoryDetail() {
-  const k = M.cat.key, info = CAT_INFO[k];
-  const ref = CAT_ROWS[2].m.kt;
-  const specs = [
-    ['Sustained wind', info.range],
-    ['This storm', `${fmt(M.kt)} kt · ${fmt(M.p)} hPa`, true],
-    ['Wind power vs Category 1', `${fmt(Math.pow(M.kt / ref, 3), M.kt < ref ? 2 : 1)}×`, true],
-    ['Historical surge range', M.cat.surgeTxt],
-  ].map(([a, b, live]) => `<div><dt>${a}</dt><dd class="${live ? 'live' : ''}">${b}</dd></div>`).join('');
-  const rows = CAT_ROWS.map(r => `<tr data-cat="${r.c.key}" class="${r.c.key === k ? 'on' : ''}"><td><i style="--cc:${r.c.color}"></i>${r.c.key}</td><td>${fmt(r.m.kt)}</td><td>${fmt(r.m.p)}</td><td>${r.m.eyeFill > 0.6 ? '—' : fmt(r.m.rmKm * 1.4)}</td><td>${r.r64 ? fmt(r.r64) : '—'}</td><td>${fmt(r.m.topKm, 1)}</td></tr>`).join('');
-  return `<h2>Strength · Saffir–Simpson scale</h2><h3>${catLabel(k)}</h3><p class="lede">${info.lede}</p><p>${info.body}</p>`
-    + `<dl class="specs">${specs}</dl><p class="example">${info.example}</p>${powerChart()}`
-    + `<div class="ctable-wrap"><table class="ctable"><thead><tr><th>Cat</th><th>Wind kt</th><th>hPa</th><th>Eye km</th><th>64-kt winds reach km</th><th>Tops km</th></tr></thead><tbody>${rows}</tbody></table></div>`
-    + `<p class="tcap">A typical storm at the middle of each category in this model. Stronger storms have lower pressure, a smaller eye and taller cloud tops. Click a row to see it.</p>`
-    + `<p class="flyhint">${FLY_HINT.category}</p>`;
+function specsHtml(rows) { return `<dl class="specs">${rows.map(([a, b, live]) => `<div><dt>${a}</dt><dd class="${live ? 'live' : ''}">${b}</dd></div>`).join('')}</dl>`; }
+function lessonBody(key) {
+  if (key === 'overview') {
+    return `<p class="l-group eyebrow">Start here</p><h2 class="l-title">A storm is an engine</h2>
+      <p class="lede">A hurricane turns the heat stored in warm seawater into wind. This guide takes one apart in eleven steps.</p>
+      <ul class="hints">
+        <li><b>Intensity</b>Drag the bar below from TD to 5 and watch the storm grow, or press Grow it.</li>
+        <li><b>Explore</b>Drag to orbit, scroll to zoom, and hover the sea to probe the wind.</li>
+        <li><b>Views</b>Slice the storm open, pull it apart, or switch to infrared.</li>
+      </ul>`;
+  }
+  const p = PART[key];
+  if (key === 'category') {
+    const k = M.cat.key, info = CAT_INFO[k], ref = CAT_ROWS[2].m.kt;
+    const rows = CAT_ROWS.map(r => `<tr data-cat="${r.c.key}" class="${r.c.key === k ? 'on' : ''}"><td><i style="--cc:${r.c.color}"></i>${r.c.key}</td><td>${fmt(r.m.kt)}</td><td>${fmt(r.m.p)}</td><td>${r.m.eyeFill > 0.6 ? '—' : fmt(r.m.rmKm * 1.4)}</td><td>${r.r64 ? fmt(r.r64) : '—'}</td><td>${fmt(r.m.topKm, 1)}</td></tr>`).join('');
+    return `<p class="l-group eyebrow">Strength · Saffir–Simpson scale</p><h2 class="l-title">${catLabel(k)}</h2><p class="lede">${info.lede}</p><p>${info.body}</p>`
+      + specsHtml([['Sustained wind', info.range], ['This storm', `${fmt(M.kt)} kt · ${fmt(M.p)} hPa`, true], ['Wind power vs Category 1', `${fmt(Math.pow(M.kt / ref, 3), M.kt < ref ? 2 : 1)}×`, true], ['Historical surge range', M.cat.surgeTxt]])
+      + `<p class="example">${info.example}</p>${powerChart()}`
+      + `<div class="ctable-wrap"><table class="ctable"><thead><tr><th>Cat</th><th>Wind kt</th><th>hPa</th><th>Eye km</th><th>64-kt winds reach km</th><th>Tops km</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      + `<p class="tcap">A typical storm at the middle of each category in this model. Click a row or bar to grow or shrink the storm to it.</p>`;
+  }
+  return `<p class="l-group eyebrow">${p.group}</p><h2 class="l-title">${p.name}</h2><p class="lede">${p.lede}</p>${p.body.map(t => `<p>${t}</p>`).join('')}${specsHtml(p.specs(M))}${STEP_HINT[key] ? `<p class="flyhint">${STEP_HINT[key]}</p>` : ''}`;
 }
-detailEl.addEventListener('click', (e) => { const el = e.target.closest('[data-cat]'); if (el) setCategory(el.dataset.cat); });
-function renderDetail() {
-  const p = PART[state.focus];
-  if (!p) { detailEl.innerHTML = ''; return; }
-  detailEl.style.setProperty('--c', p.color);
-  if (p.key === 'category') { detailEl.innerHTML = categoryDetail(); return; }
-  const specs = p.specs(M).map(([k, v, live]) => `<div><dt>${k}</dt><dd class="${live ? 'live' : ''}">${v}</dd></div>`).join('');
-  detailEl.innerHTML = `<h2>${p.group}</h2><h3>${p.name}</h3><p class="lede">${p.lede}</p>${p.body.map(t => `<p>${t}</p>`).join('')}<dl class="specs">${specs}</dl>${FLY_HINT[p.key] ? `<p class="flyhint">${FLY_HINT[p.key]}</p>` : ''}`;
+function renderLesson() {
+  const key = state.focus, idx = TOUR.indexOf(key);
+  const color = key === 'overview' ? '#ff8a3d' : PART[key].color;
+  lessonEl.style.setProperty('--c', color);
+  const stepTxt = idx === 0 ? 'Overview' : `<b>${String(idx).padStart(2, '0')}</b> / ${TOUR.length - 1}`;
+  const prog = TOUR.slice(1).map((k, i) => `<i class="${i + 1 < idx ? 'done' : i + 1 === idx ? 'now' : ''}"></i>`).join('');
+  let html = `<div class="l-top"><span class="l-step">${stepTxt}</span><button type="button" class="l-menu" id="menuBtn" aria-expanded="${menuOpen}">${menuOpen ? 'Close' : 'All parts'}</button></div><div class="l-progress" aria-hidden="true">${prog}</div>`;
+  if (menuOpen) {
+    html += `<p class="eyebrow">Jump to a part</p><ul class="l-list">${TOUR.slice(1).map((k, i) => `<li><button type="button" data-go="${k}" aria-current="${k === key}"><span>${String(i + 1).padStart(2, '0')}</span><strong>${PART[k].name}</strong><em>${PART[k].tag(M)}</em></button></li>`).join('')}</ul>`;
+  } else {
+    html += lessonBody(key);
+    const prev = TOUR[idx - 1], next = TOUR[idx + 1];
+    const nameOf = (k) => k === 'overview' ? 'Overview' : PART[k].name;
+    html += `<div class="l-nav"><button type="button" data-go="${prev || ''}" ${prev ? '' : 'disabled'}>← ${prev ? nameOf(prev) : 'Back'}</button><button type="button" class="next" data-go="${next || ''}" ${next ? '' : 'disabled'}>${next ? (idx === 0 ? 'Start: ' : 'Next: ') + nameOf(next) : 'End of tour'} →</button></div>`;
+    if (key === 'overview' || key === 'category') html += NOTES_HTML;
+  }
+  const st = lessonEl.scrollTop;
+  lessonEl.innerHTML = html;
+  lessonEl.scrollTop = st;
 }
+const NOTES_HTML = `<details class="notes"><summary>How the numbers work</summary><ul>
+  <li><b>Potential intensity</b> follows Emanuel’s heat-engine theory (Emanuel 1986; Bister &amp; Emanuel 1998), with C<sub>k</sub>/C<sub>d</sub> = 0.9, near-surface air at 80% humidity and 1 °C cooler than the sea, and a 0.8 reduction from gradient-level to 10 m wind.</li>
+  <li><b>Realized intensity</b> scales potential intensity down with a ramp from 25.5 to 27.5 °C and a wind-shear penalty above 8 kt. Both are illustrative, not a forecast model. Choosing a category picks warmer water and weaker shear for stronger storms.</li>
+  <li><b>Pressure</b> uses the Atkinson–Holliday (1977) wind–pressure relation, and the probe a Holland (1980) profile.</li>
+  <li><b>Heat released</b> scales NOAA HRD’s estimate (≈ 6 × 10¹⁴ W) by about 7% per °C and by storm strength. World electricity ≈ 3.5 TW average. A Hiroshima bomb ≈ 6.3 × 10¹³ J.</li>
+  <li><b>Surge</b> ranges are the historical Saffir–Simpson values, dropped from the scale in 2010 because real surge depends on coastline shape and depth.</li>
+  <li>Sources: <a href="https://www.aoml.noaa.gov/hrd-faq/" target="_blank" rel="noopener">NOAA HRD FAQ</a>, <a href="https://www.nhc.noaa.gov/aboutsshws.php" target="_blank" rel="noopener">NHC Saffir–Simpson scale</a>, <a href="https://emanuel.mit.edu/limits-hurricane-intensity" target="_blank" rel="noopener">Emanuel, limits on hurricane intensity</a>.</li>
+</ul></details>`;
+lessonEl.addEventListener('click', (e) => {
+  if (e.target.closest('#menuBtn')) { menuOpen = !menuOpen; renderLesson(); return; }
+  const go = e.target.closest('[data-go]');
+  if (go && go.dataset.go) { menuOpen = false; select(go.dataset.go); lessonEl.scrollTop = 0; renderLesson(); return; }
+  const c = e.target.closest('[data-cat]');
+  if (c) setKt(CAT_MID[c.dataset.cat], true);
+});
 function select(key) {
   state.focus = key;
   if (key === 'eye' && state.view !== 'whole') setView('whole', true);
   else if (['engine', 'eyewall', 'inflow'].includes(key) && state.view === 'whole') setView('cutaway', true);
-  setTargets(); renderParts(); renderDetail(); flyTo(key);
+  else if (['overview', 'category'].includes(key) && state.view === 'cutaway') setView('whole', true);
+  setTargets(); renderLesson(); flyTo(key);
 }
 
-const segsEl = $('segs');
-segsEl.innerHTML = CATS.map(c => `<button type="button" id="seg-${c.key}" data-cat="${c.key}" aria-pressed="false" style="--cc:${c.color}" title="${catLabel(c.key)}"><b>${c.key}</b><small>${CAT_RANGE_SHORT[c.key]}</small></button>`).join('');
-segsEl.addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) setCategory(b.dataset.cat); });
-function setCategory(key) {
-  stopGrow();
-  Object.assign(state, conditionsFor(CAT_MID[key]));
-  const was = state.focus;
-  update();
-  if (was !== 'category') select('category');
+/* =====================================================================
+   Intensity console
+   ===================================================================== */
+const KT_MIN = 15, KT_MAX = 165;
+const ktEl = $('kt');
+const pct = (kt) => (kt - KT_MIN) / (KT_MAX - KT_MIN) * 100;
+{
+  const stops = [];
+  CATS.forEach((c, i) => {
+    const a = pct(Math.max(KT_MIN, c.min)), b = pct(i < CATS.length - 1 ? CATS[i + 1].min : KT_MAX);
+    const col = `color-mix(in srgb, ${c.color} 70%, #0a121c)`;
+    stops.push(`${col} ${a}%`, `${col} ${b - 0.4}%`, `#0a121c ${b - 0.4}%`, `#0a121c ${b}%`);
+  });
+  ktEl.style.setProperty('--track', `linear-gradient(90deg, ${stops.join(', ')})`);
+  $('ticks').innerHTML = CATS.map(c => `<button type="button" data-cat="${c.key}" style="left:${pct(CAT_MID[c.key])}%" title="${catLabel(c.key)}">${c.key}</button>`).join('');
 }
+$('ticks').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) setKt(CAT_MID[b.dataset.cat], true); });
+ktEl.addEventListener('input', () => setKt(+ktEl.value, false));
+function setKt(kt, frame) {
+  stopGrow();
+  Object.assign(state, conditionsFor(kt));
+  update();
+  if (frame && !flight && ['overview', 'category'].includes(state.focus)) autoFrame = 4;
+}
+
 let grow = null, lastCat = null;
-function startGrow() {
-  if (state.focus !== 'category') select('category');
-  grow = { t: 0, dur: 18, acc: 1 };
-  controls.autoRotate = !reduceMotion; controls.autoRotateSpeed = 0.7;
+function startGrow(from = 20, to = 152, dur = 18) {
+  if (state.focus !== 'category' && state.focus !== 'overview') select('category');
+  grow = { t: 0, dur, acc: 1, from, to };
+  controls.autoRotate = !reduceMotion; controls.autoRotateSpeed = 0.55;
+  autoFrame = dur + 3;
   $('growBtn').setAttribute('aria-pressed', 'true'); $('growBtn').textContent = '■ Stop';
 }
 function stopGrow() {
@@ -1667,39 +1770,47 @@ function stepGrow(dt) {
   grow.t += dt; grow.acc += dt;
   const u = Math.min(1, grow.t / grow.dur);
   const e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
-  if (grow.acc > 0.08 || u >= 1) { grow.acc = 0; Object.assign(state, conditionsFor(20 + (152 - 20) * e)); update(); }
+  if (grow.acc > 0.08 || u >= 1) { grow.acc = 0; Object.assign(state, conditionsFor(grow.from + (grow.to - grow.from) * e)); update(); }
   if (u >= 1) stopGrow();
 }
+
+const CAT_SUB = { TD: 'Not yet a named storm', TS: 'Named storm · no eye yet', '1': 'Hurricane', '2': 'Hurricane', '3': 'Major hurricane', '4': 'Major hurricane', '5': 'Major hurricane · the top of the scale' };
 function renderReadout() {
   const m = M;
-  document.querySelectorAll('#segs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cat === m.cat.key)));
   if (lastCat && lastCat !== m.cat.key) { const chip = $('catChip'); chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump'); }
   lastCat = m.cat.key;
   $('catChip').textContent = m.cat.key;
   $('catChip').style.setProperty('--cc', m.cat.color);
-  $('catName').textContent = m.cat.name;
-  $('catNote').textContent = m.fuelOK ? `Saffir–Simpson scale · potential intensity ${fmt(m.piKt)} kt` : 'Sea too cool: thunderstorms can’t keep the engine running';
-  $('rWind').innerHTML = `${fmt(m.kt)} <small>kt</small>`;
+  ktEl.style.setProperty('--thumb', m.cat.color);
+  $('catName').textContent = catLabel(m.cat.key);
+  $('catSub').textContent = m.fuelOK ? CAT_SUB[m.cat.key] : 'Sea too cool to sustain a hurricane';
+  $('rWind').textContent = fmt(m.kt);
   $('rWind2').textContent = `${fmt(m.kt * 1.15078)} mph · ${fmt(m.kt * 1.852)} km/h`;
+  document.querySelectorAll('#ticks button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cat === m.cat.key)));
   $('rPres').innerHTML = `${fmt(m.p)} <small>hPa</small>`;
-  $('rPres2').textContent = `${fmt(1013 - m.p)} hPa below normal`;
-  $('rEff').innerHTML = `${fmt(m.eff * 100, 1)}<small>%</small>`;
+  $('rPres2').textContent = `${fmt(1013 - m.p)} below normal`;
+  $('rEye').innerHTML = m.eyeFill > 0.6 ? 'None' : `${fmt(m.rmKm * 1.4)} <small>km</small>`;
+  $('rEye2').textContent = m.eyeFill > 0.6 ? 'Cloud-filled centre' : `Tops ${fmt(m.topKm, 1)} km`;
   $('rHeat').innerHTML = `${fmt(m.heat / 1e12)} <small>TW</small>`;
-  $('rHeat2').textContent = `≈ ${fmt(m.heat / WORLD_ELEC_W)}× world electricity · ${fmt(m.heat / HIROSHIMA_J)} Hiroshima bombs a second`;
+  $('rHeat2').textContent = `${fmt(m.heat / WORLD_ELEC_W)}× world electricity`;
   $('rKin').innerHTML = `${fmt(m.pd / 1e12, 1)} <small>TW</small>`;
-  $('rKin2').textContent = `Only ~${fmt(m.pd / m.heat * 100, 1)}% of the heat becomes wind`;
-  $('rSurge').innerHTML = m.cat.surgeTxt;
-  $('rSurge2').textContent = `+${fmt(m.ib)} cm from low pressure alone`;
+  $('rKin2').textContent = `${fmt(m.pd / m.heat * 100, 1)}% of the heat`;
+  $('rSurge').textContent = m.cat.surgeTxt;
+  $('rSurge2').textContent = `+${fmt(m.ib)} cm from low pressure`;
 }
 function syncControls() {
   $('sst').value = state.sst; $('tout').value = state.tout; $('shear').value = state.shear;
   $('sstOut').textContent = `${fmt(state.sst, 1)} °C`;
   $('toutOut').textContent = minus(`${fmt(state.tout)} °C`);
   $('shearOut').textContent = `${fmt(state.shear)} kt`;
+  if (document.activeElement !== ktEl) ktEl.value = Math.round(clamp(M.kt, KT_MIN, KT_MAX));
 }
 function update() {
   M = model(state.sst, state.tout, state.shear);
-  syncControls(); setTargets(); renderReadout(); renderParts(); renderDetail();
+  if (M.kt > lastKt) growBoost = Math.min(1, growBoost + (M.kt - lastKt) / 12);
+  lastKt = M.kt;
+  syncControls(); setTargets(); renderReadout();
+  if (!menuOpen) renderLesson();
 }
 for (const id of ['sst', 'tout', 'shear']) $(id).addEventListener('input', (e) => { stopGrow(); state[id] = parseFloat(e.target.value); update(); });
 document.querySelector('.presets').addEventListener('click', (e) => {
@@ -1707,11 +1818,17 @@ document.querySelector('.presets').addEventListener('click', (e) => {
   const [a, t, s] = b.dataset.p.split(',').map(Number);
   stopGrow(); Object.assign(state, { sst: a, tout: t, shear: s }); update();
 });
+$('moreBtn').addEventListener('click', (e) => {
+  const open = $('drawer').hidden;
+  $('drawer').hidden = !open; e.currentTarget.setAttribute('aria-expanded', String(open));
+  resize();
+});
+$('opening').addEventListener('input', (e) => { state.opening = +e.target.value; $('openingOut').textContent = `${state.opening}°`; if (state.view !== 'cutaway') setView('cutaway'); setTargets(); });
+
 function setView(v, quiet) {
   state.view = v;
   document.querySelectorAll('#viewSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
-  $('openingBox').hidden = v !== 'cutaway';
-  if (!quiet && state.focus === 'eye' && v !== 'whole') { state.focus = 'engine'; renderParts(); renderDetail(); flyTo('engine'); }
+  if (!quiet && state.focus === 'eye' && v !== 'whole') { select('overview'); return; }
   setTargets();
 }
 document.querySelectorAll('#viewSeg button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
@@ -1722,20 +1839,19 @@ document.querySelectorAll('#imgSeg button').forEach(b => b.addEventListener('cli
   setTargets();
 }));
 $('flowBtn').addEventListener('click', (e) => { state.flow = !state.flow; e.currentTarget.setAttribute('aria-pressed', String(state.flow)); setTargets(); });
-$('resetBtn').addEventListener('click', () => { if (state.focus === 'eye') { state.focus = 'engine'; renderParts(); renderDetail(); setTargets(); } controls.minDistance = 24; controls.maxPolarAngle = Math.PI * 0.485; flyTo('home'); });
-$('opening').addEventListener('input', (e) => { state.opening = +e.target.value; $('openingOut').textContent = `${state.opening}°`; setTargets(); });
+$('resetBtn').addEventListener('click', () => {
+  if (state.focus === 'eye') { state.focus = 'overview'; renderLesson(); setTargets(); }
+  controls.minDistance = 24; controls.maxPolarAngle = Math.PI * 0.487; flyTo(state.focus === 'overview' ? 'overview' : 'home');
+});
 window.addEventListener('keydown', (e) => {
-  if (e.target.closest('input')) return;
-  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-  if (!e.target.closest('.parts') && e.target !== document.body) return;
-  e.preventDefault();
-  const i = PARTS.findIndex(p => p.key === state.focus);
-  const n = PARTS[(i + (e.key === 'ArrowDown' ? 1 : -1) + PARTS.length) % PARTS.length];
-  select(n.key); $('part-' + n.key)?.focus();
+  if (e.target.closest && e.target.closest('input, textarea')) return;
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const i = TOUR.indexOf(state.focus) + (e.key === 'ArrowRight' ? 1 : -1);
+  if (i >= 0 && i < TOUR.length) { e.preventDefault(); menuOpen = false; select(TOUR[i]); }
 });
 
 /* =====================================================================
-   Layout, quality scaling, frame loop
+   Layout, quality, frame loop
    ===================================================================== */
 let W = 1, H = 1, cloudScale = Q.scale;
 function sizeTargets() {
@@ -1767,20 +1883,18 @@ function resize() {
   W = Math.max(1, r.width); H = Math.max(1, r.height);
   renderer.setSize(W, H, false);
   camera.aspect = W / H;
-  camera.fov = W < 600 ? 48 : 36;
-  // keep the storm centred in the space the glass panels leave free
-  const wide = matchMedia('(min-width: 901px)').matches;
-  const deck = $('deck').getBoundingClientRect();
-  document.documentElement.style.setProperty('--deck-h', `${Math.round(deck.height)}px`);
-  if (wide) {
-    const panelW = document.querySelector('.panel').getBoundingClientRect().width + 32;
-    camera.setViewOffset(W, H, panelW / 2, (deck.height + 16) / 2 - 20, W, H);
+  camera.fov = W < 600 ? 52 : 40;
+  // centre the storm in the space the lesson card and console leave free
+  if (matchMedia('(min-width: 901px)').matches) {
+    const lw = lessonEl.getBoundingClientRect().width + 18;
+    const ch = $('console').getBoundingClientRect().height + 18;
+    camera.setViewOffset(W, H, -lw / 2, ch / 2 - 30, W, H);
   } else camera.clearViewOffset();
   camera.updateProjectionMatrix();
   sizeTargets();
 }
 new ResizeObserver(resize).observe(stage);
-new ResizeObserver(resize).observe($('deck'));
+new ResizeObserver(resize).observe($('console'));
 
 const clock = new THREE.Clock();
 let t = 0, ftAvg = 16, ftCount = 0;
@@ -1800,26 +1914,21 @@ function frame() {
   cloudMat.uniforms.uInvProj.value.copy(camera.projectionMatrixInverse);
   cloudMat.uniforms.uCamWorld.value.copy(camera.matrixWorld);
   cloudMat.uniforms.uCamPos.value.copy(camera.position);
-
   cloudMat.uniforms.uFrame.value = (cloudMat.uniforms.uFrame.value + 1) % 4096;
 
-  // 1. scene (sky, sea, airflow) with depth
   renderer.setRenderTarget(sceneRT);
-  renderer.setClearColor(0x04080e, 1);
+  renderer.setClearColor(0x000000, 1);
   renderer.clear();
   renderer.render(scene, camera);
-  // 2. volumetric clouds, stopping at scene depth
   renderer.setRenderTarget(cloudRT);
   renderer.render(cloudScene, orthoCam);
-  // 3. temporal accumulation
   const prevH = histRT[histIdx], nextH = histRT[1 - histIdx];
   resolveMat.uniforms.uHist.value = prevH.texture;
-  resolveMat.uniforms.uBlend.value = histValid ? 0.86 : 0;
+  resolveMat.uniforms.uBlend.value = histValid ? 0.85 : 0;
   renderer.setRenderTarget(nextH);
   renderer.render(resolveScene, orthoCam);
   histIdx = 1 - histIdx; histValid = true;
   compMat.uniforms.uClouds.value = nextH.texture;
-  // 4. composite, bloom, final
   renderer.setRenderTarget(compRT);
   renderer.render(compScene, orthoCam);
   renderer.setRenderTarget(bloomA);
@@ -1835,7 +1944,6 @@ function frame() {
   prevVP.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
   placeLabels(W, H);
 
-  // adapt cloud resolution to keep the frame rate smooth
   ftAvg = ftAvg * 0.95 + dt * 1000 * 0.05;
   if (++ftCount > 90) {
     ftCount = 0;
@@ -1845,9 +1953,17 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
+// Genesis: the storm forms from a depression while the camera sweeps in
 update();
-setView('cutaway', true);
 resize();
+if (!reduceMotion) {
+  const target = M.kt;
+  Object.assign(state, conditionsFor(22)); update();
+  Object.assign(cur, tgt);
+  camera.position.set(150, 120, 300);
+  flight = { from: { pos: camera.position.clone(), target: controls.target.clone() }, toPos: HOME.pos.clone(), toTarget: HOME.target.clone(), t: 0, dur: 7 };
+  setTimeout(() => { startGrow(22, target, 9); controls.autoRotate = false; autoFrame = 0; }, 600);
+}
 requestAnimationFrame(frame);
 </script>
 </body>

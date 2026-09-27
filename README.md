@@ -6,16 +6,15 @@ Open `index.html` in a browser. It needs an internet connection to load Three.js
 
 ## What you can do
 
-- **Orbit and zoom** a raymarched, sunlit volumetric storm. It casts its shadow on a wind-roughened sea with whitecaps under the eyewall.
-- **Whole / Sliced / Exploded**: see it as a satellite would, slice a wedge out of it (the slice follows your view and its angle is adjustable), or pull it apart into layers.
-- **Fly to any part**: selecting a part flies the camera to it. Pick the eye to drop inside it and look up at the stadium of eyewall cloud.
-- **Probe the sea**: hover anywhere on the ocean to read the local wind, pressure and wind class.
-- **Visible / Infrared**: switch to a satellite-style infrared view coloured by cloud-top temperature.
-- **Airflow**: glowing streamlines show the secondary circulation. Air flows in along the sea, rises in the eyewall, flows out at the top and sinks in the eye.
-- **Compare categories**: a Saffir–Simpson strip (TD, TS, 1–5) reshapes the storm into each category and colours the sea by wind strength. **Grow it** animates a depression into a Category 5. The category page lists NHC-style damage, real example storms, a wind-power chart (power ∝ wind³) and a table comparing pressure, eye size, hurricane-wind reach and cloud tops.
-- **Set the conditions**: change sea surface temperature, outflow temperature and wind shear, and watch the category, wind, pressure, Carnot efficiency, heat released, wind power and surge change. The storm reshapes as you go: the eye clears, the tops rise and shear tilts it.
+- **Watch it grow.** On load, a scattered cluster of thunderstorms organises into a major hurricane over the open ocean. Drag the intensity bar from TD to Category 5, or press **Grow it**, and the storm spins up, expands, clears its eye and flashes with eyewall lightning.
+- **Take the tour.** A guided lesson card walks through eleven parts: heat engine, warm ocean, surface inflow, eyewall, eye, rainbands, outflow canopy, wind field, storm surge, Coriolis spin and the Saffir–Simpson categories. Each step flies the camera to the part and highlights it.
+- **Explore.** Orbit and zoom, slice the storm open, pull it apart into layers, switch to satellite-style infrared, show the airflow, or hover the sea to probe the local wind and pressure.
+- **Compare categories.** The category lesson has damage descriptions, real example storms, a wind-power chart (power ∝ wind³) and a table comparing pressure, eye size, hurricane-wind reach and cloud tops.
+- **Change the ocean and atmosphere.** Sea temperature, outflow temperature and wind shear drive the physics model directly.
 
-It needs WebGL2. HD mode (the default) renders at up to 2× pixel density with 4× MSAA, 128³ GPU-generated cloud noise, temporally accumulated clouds and bloom. Fast mode trades that for frame rate on weaker machines. In both modes the cloud resolution adapts to keep the frame rate smooth.
+## Rendering
+
+The storm is a raymarched volume with spiral-aligned cirrus streaks, clustered convective towers, rain shafts and lightning. It is lit by a low sun with self-shadowing and multiple-scattering approximation, and fades into aerial haze over an ocean that runs to the horizon. HD mode (the default) adds 4× MSAA, 128³ GPU-generated noise, temporal accumulation, bloom and ACES tone mapping. Fast mode is for weaker GPUs. It needs WebGL2.
 
 ## The model
 
